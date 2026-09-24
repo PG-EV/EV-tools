@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Response to Table</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --clicked: #16a34a;
+      --clicked-hover: #15803d;
+      --danger: #dc2626;
+      --border: #d1d5db;
+      --surface: #ffffff;
+      --background: #f3f4f6;
+      --text: #111827;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--background);
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      background: var(--surface);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .subtitle { margin: 0 0 20px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      resize: vertical;
+      font: 14px/1.5 Consolas, Monaco, monospace;
+      outline: none;
+    }
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0 18px;
+    }
+    .actions.frozen {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+    button:active { transform: translateY(1px); }
+    .primary { color: white; background: var(--primary); }
+    .primary:hover { background: var(--primary-hover); }
+    .secondary { color: var(--text); background: #e5e7eb; }
+    .secondary:hover { background: #d1d5db; }
+    .danger { color: white; background: var(--danger); }
+    .danger:hover { background: #b91c1c; }
+    .message {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+    .message.error { display: block; color: #991b1b; background: #fee2e2; }
+    .message.success { display: block; color: #166534; background: #dcfce7; }
+    .summary {
+      display: none;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: #f9fafb; font-size: 13px; text-transform: uppercase; }
+    tbody tr:hover { background: #f9fafb; }
+    .status {
+      display: inline-block;
+      min-width: 48px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-align: center;
+      font-weight: 700;
+      background: #e5e7eb;
+    }
+    .status-4 { color: #9a3412; background: #ffedd5; }
+    .status-5 { color: #991b1b; background: #fee2e2; }
+    .status-2 { color: #166534; background: #dcfce7; }
+    .open-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 130px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: #1e3a8a;
+      background: #bfdbfe;
+      text-decoration: none;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background-color 0.2s;
+    }
+    .open-link:hover { background: #93c5fd; }
+    .open-link.clicked { color: #166534; background: #bbf7d0; }
+    .open-link.clicked:hover { background: #86efac; }
+    .empty { color: var(--muted); font-style: italic; }
+    .message-link-box {
+      display: block;
+      width: 100%;
+      margin: 6px 0;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f9fafb;
+      color: var(--primary);
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+    .message-link-box:hover {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+    .message-link-box.action-hover {
+      border-color: #f59e0b;
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .url-column-link {
+      display: block;
+      padding: 9px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: inherit;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+    .url-column-link:hover {
+      color: var(--primary);
+      background: #eff6ff;
+    }
+    .url-column-link.action-hover {
+      border-color: #f59e0b;
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .action-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 240px;
+    }
+    .action-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 50px;
+      align-items: stretch;
+      gap: 6px;
+    }
+    .action-item .open-link,
+    .action-item .message-open-link {
+      width: 100%;
+      min-height: 56px;
+      white-space: nowrap;
+    }
+    .copy-link-btn {
+      width: 50px;
+      min-height: 56px;
+      padding: 9px 6px;
+      color: #374151;
+      background: #e5e7eb;
+      font-size: 12px;
+    }
+    .copy-link-btn:hover { background: #d1d5db; }
+    .message-open-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: #4c1d95;
+      background: #ddd6fe;
+      text-decoration: none;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background-color 0.2s;
+    }
+    .message-open-link:hover {
+      background: #c4b5fd;
+    }
+    .message-open-link.clicked {
+      color: #166534;
+      background: #bbf7d0;
+    }
+    .message-open-link.clicked:hover {
+      background: #86efac;
+    }
+    .duplicate-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 8px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #991b1b;
+      background: #fee2e2;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .facebook-photo-row { background: #fee2e2 !important; }
+    .facebook-photo-row:hover { background: #fecaca !important; }
+    .click-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+      color: inherit;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .container { padding: 16px; }
+      h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>JSON Response to Table</h1>
+    <p class="subtitle">Paste a JSON object, a JSON array, or several JSON arrays one after another.</p>
+    <textarea id="jsonInput" spellcheck="false" placeholder='Example:
+[{"url":"https://example.com","statusCode":404,"message":"Multiple URLs found"}]'></textarea>
+    <div class="actions">
+      <button class="primary" id="convertBtn" type="button">Convert to Table</button>
+      <button class="secondary" id="copyBtn" type="button">Copy Table</button>
+      <button class="secondary" id="filterNoColorBtn" type="button">Show Only Normal Rows</button>
+      <button class="secondary" id="filterNonNormalBtn" type="button">Show Only Non Normal Rows</button>
+      <button class="secondary" id="freezeButtonsBtn" type="button">Freeze Buttons</button>
+      <button class="danger" id="clearBtn" type="button">Clear</button>
+      <button class="secondary" id="resetVisitedBtn" type="button">Reset Clicked Links</button>
+    </div>
+    <div id="message" class="message" role="alert"></div>
+    <div id="summary" class="summary"></div>
+    <div id="tableContainer"></div>
+  </main>
+  <script>
+    const input = document.getElementById('jsonInput');
+    const messageBox = document.getElementById('message');
+    const tableContainer = document.getElementById('tableContainer');
+    const summary = document.getElementById('summary');
+    const STORAGE_KEY = 'jsonTableClickCounts';
+    let showOnlyNormalRows = false;
+    let showOnlyNonNormalRows = false;
+    let buttonsFrozen = false;
+
+    function showMessage(text, type) {
+      messageBox.textContent = text;
+      messageBox.className = 'message ' + type;
+    }
+    function hideMessage() {
+      messageBox.textContent = '';
+      messageBox.className = 'message';
+    }
+    function getClickCounts() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch {
+        return {};
+      }
+    }
+    function incrementClickCount(url) {
+      const counts = getClickCounts();
+      counts[url] = (counts[url] || 0) + 1;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+      return counts[url];
+    }
+    // Supports one JSON value or multiple JSON arrays/objects concatenated together.
+    function parseJsonValues(text) {
+      const trimmed = text.trim();
+      if (!trimmed) throw new Error('Please paste a JSON response first.');
+      try {
+        return [JSON.parse(trimmed)];
+      } catch (_) {
+        const values = [];
+        let start = -1;
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        for (let i = 0; i < trimmed.length; i++) {
+          const char = trimmed[i];
+          if (inString) {
+            if (escaped) escaped = false;
+            else if (char === '\\') escaped = true;
+            else if (char === '"') inString = false;
+            continue;
+          }
+          if (char === '"') {
+            inString = true;
+          } else if (char === '[' || char === '{') {
+            if (depth === 0) start = i;
+            depth++;
+          } else if (char === ']' || char === '}') {
+            depth--;
+            if (depth < 0) throw new Error('Invalid JSON structure.');
+            if (depth === 0 && start !== -1) {
+              values.push(JSON.parse(trimmed.slice(start, i + 1)));
+              start = -1;
+            }
+          } else if (depth === 0 && !/\s/.test(char)) {
+            throw new Error('Unexpected content between JSON responses.');
+          }
+        }
+        if (depth !== 0 || inString || values.length === 0) {
+          throw new Error('Invalid or incomplete JSON.');
+        }
+        return values;
+      }
+    }
+    function flattenRecords(values) {
+      const records = [];
+      values.forEach(value => {
+        if (Array.isArray(value)) {
+          value.forEach(item => records.push(
+            item && typeof item === 'object' && !Array.isArray(item)
+              ? item
+              : { value: item }
+          ));
+        } else if (value && typeof value === 'object') {
+          records.push(value);
+        } else {
+          records.push({ value });
+        }
+      });
+      return records;
+    }
+    function getColumns(records) {
+      const preferred = ['url', 'statusCode', 'message'];
+      const found = new Set();
+      records.forEach(record => Object.keys(record).forEach(key => found.add(key)));
+      const columns = [...found];
+      return [
+        ...preferred.filter(key => found.has(key)),
+        ...columns.filter(key => !preferred.includes(key))
+      ];
+    }
+    function stringifyValue(value) {
+      if (value === null || value === undefined || value === '') return '';
+      return typeof value === 'object' ? JSON.stringify(value) : String(value);
+    }
+    function makeCell(value, column, record) {
+      const td = document.createElement('td');
+      const text = stringifyValue(value);
+      if (!text) {
+        const span = document.createElement('span');
+        span.className = 'empty';
+        span.textContent = 'N/A';
+        td.appendChild(span);
+        return td;
+      }
+      if (column === 'url' && /^https?:\/\//i.test(text)) {
+        const urlText = document.createElement('span');
+        urlText.className = 'url-column-link';
+        urlText.textContent = text;
+        td.appendChild(urlText);
+      } else if (column === 'statusCode') {
+        const badge = document.createElement('span');
+        badge.className = 'status status-' + text.charAt(0);
+        badge.textContent = text;
+        td.appendChild(badge);
+      } else if (column === 'message') {
+        const urlPattern = /https?:\/\/[^\s,]+/gi;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        while ((match = urlPattern.exec(text)) !== null) {
+          parts.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+          parts.push({ type: 'url', value: match[0] });
+          lastIndex = match.index + match[0].length;
+        }
+        parts.push({ type: 'text', value: text.slice(lastIndex) });
+        if (parts.some(part => part.type === 'url')) {
+          const urlCounts = parts
+            .filter(part => part.type === 'url')
+            .reduce((counts, part) => {
+              counts[part.value] = (counts[part.value] || 0) + 1;
+              return counts;
+            }, {});
+          const rowUrl = stringifyValue(record && record.url);
+          if (/^https?:\/\//i.test(rowUrl)) {
+            urlCounts[rowUrl] = (urlCounts[rowUrl] || 0) + 1;
+          }
+          parts.forEach(part => {
+            if (part.type === 'url') {
+              const link = document.createElement('span');
+              link.className = 'message-link-box';
+              link.dataset.url = part.value;
+              link.dataset.messageLinkIndex = String(td.querySelectorAll('.message-link-box').length);
+              link.appendChild(document.createTextNode(part.value));
+              if (urlCounts[part.value] > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'duplicate-badge';
+                badge.textContent = `Duplicate ×${urlCounts[part.value]}`;
+                link.appendChild(badge);
+              }
+              td.appendChild(link);
+            } else if (part.value) {
+              const cleanedText = part.value.replace(/^\s*,\s*/, '').replace(/\s*,\s*$/, '');
+              if (cleanedText) td.appendChild(document.createTextNode(cleanedText));
+            }
+          });
+        } else {
+          td.textContent = text;
+        }
+      } else {
+        td.textContent = text;
+      }
+      return td;
+    }
+    function makeCopyButton(text) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy-link-btn';
+      button.textContent = 'Copy';
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1200);
+        } catch {
+          showMessage('Clipboard access was blocked by the browser.', 'error');
+        }
+      });
+      return button;
+    }
+    function appendActionItem(container, link, text) {
+      const item = document.createElement('div');
+      item.className = 'action-item';
+      item.append(link, makeCopyButton(text));
+      container.appendChild(item);
+    }
+    function makeActionCell(record, row) {
+      const td = document.createElement('td');
+      const actionLinks = document.createElement('div');
+      actionLinks.className = 'action-links';
+      const counts = getClickCounts();
+      const url = stringifyValue(record.url);
+      if (/^https?:\/\//i.test(url)) {
+        const clickCount = counts[url] || 0;
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'open-link';
+        if (clickCount > 0) {
+          link.classList.add('clicked');
+        }
+        link.innerHTML = `Open URL <span class="click-badge">${clickCount}</span>`;
+        const urlColumnLink = row.querySelector('.url-column-link');
+        link.addEventListener('mouseenter', () => {
+          if (urlColumnLink) urlColumnLink.classList.add('action-hover');
+        });
+        link.addEventListener('mouseleave', () => {
+          if (urlColumnLink) urlColumnLink.classList.remove('action-hover');
+        });
+        link.addEventListener('focus', () => {
+          if (urlColumnLink) urlColumnLink.classList.add('action-hover');
+        });
+        link.addEventListener('blur', () => {
+          if (urlColumnLink) urlColumnLink.classList.remove('action-hover');
+        });
+        link.addEventListener('click', () => {
+          const count = incrementClickCount(url);
+          link.classList.add('clicked');
+          link.innerHTML = `Open URL <span class="click-badge">${count}</span>`;
+        });
+        appendActionItem(actionLinks, link, url);
+      }
+
+      const messageLinks = [...row.querySelectorAll('.message-link-box')];
+      messageLinks.forEach((messageLink, index) => {
+        const button = document.createElement('a');
+        const messageUrl = messageLink.dataset.url;
+        button.href = messageUrl;
+        button.target = '_blank';
+        button.rel = 'noopener noreferrer';
+        button.className = 'message-open-link';
+        const messageClickCount = counts[messageUrl] || 0;
+        if (messageClickCount > 0) {
+          button.classList.add('clicked');
+        }
+        button.innerHTML = `Open Message Link ${index + 1} <span class="click-badge">${messageClickCount}</span>`;
+        button.addEventListener('mouseenter', () => {
+          messageLink.classList.add('action-hover');
+        });
+        button.addEventListener('mouseleave', () => {
+          messageLink.classList.remove('action-hover');
+        });
+        button.addEventListener('focus', () => {
+          messageLink.classList.add('action-hover');
+        });
+        button.addEventListener('blur', () => {
+          messageLink.classList.remove('action-hover');
+        });
+        button.addEventListener('click', () => {
+          const count = incrementClickCount(messageUrl);
+          button.classList.add('clicked');
+          button.innerHTML = `Open Message Link ${index + 1} <span class="click-badge">${count}</span>`;
+        });
+        appendActionItem(actionLinks, button, messageUrl);
+      });
+
+      if (!actionLinks.children.length) {
+        const span = document.createElement('span');
+        span.className = 'empty';
+        span.textContent = 'No link';
+        actionLinks.appendChild(span);
+      }
+      td.appendChild(actionLinks);
+      return td;
+    }
+    function renderTable(records) {
+      if (!records.length) throw new Error('The JSON response contains no records.');
+      const columns = getColumns(records);
+      const visibleRecords = records.filter(record => {
+        const rowUrl = String(record.url || '').toLowerCase();
+        const isRedRow = rowUrl.includes('facebook.com') && (rowUrl.includes('/photos/') || rowUrl.includes('/posts/') || rowUrl.includes('photosposts'));
+        if (showOnlyNormalRows) return !isRedRow;
+        if (showOnlyNonNormalRows) return isRedRow;
+        return true;
+      });
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      table.id = 'resultTable';
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      const numberHeader = document.createElement('th');
+      numberHeader.textContent = '#';
+      headRow.appendChild(numberHeader);
+      columns.forEach(column => {
+        const th = document.createElement('th');
+        th.textContent = column;
+        headRow.appendChild(th);
+      });
+      const actionHeader = document.createElement('th');
+      actionHeader.textContent = 'Action';
+      headRow.appendChild(actionHeader);
+      thead.appendChild(headRow);
+      const tbody = document.createElement('tbody');
+      visibleRecords.forEach((record, index) => {
+        const row = document.createElement('tr');
+        const rowUrl = String(record.url || '').toLowerCase();
+        if (rowUrl.includes('facebook.com') && (rowUrl.includes('/photos/') || rowUrl.includes('/posts/') || rowUrl.includes('photosposts'))) {
+          row.classList.add('facebook-photo-row');
+        }
+        const numberCell = document.createElement('td');
+        numberCell.textContent = String(index + 1);
+        row.appendChild(numberCell);
+        columns.forEach(column => row.appendChild(makeCell(record[column], column, record)));
+        row.appendChild(makeActionCell(record, row));
+        tbody.appendChild(row);
+      });
+      table.append(thead, tbody);
+      wrap.appendChild(table);
+      tableContainer.replaceChildren(wrap);
+      summary.style.display = 'block';
+      summary.textContent = visibleRecords.length + (visibleRecords.length === 1 ? ' record' : ' records') + ' displayed';
+    }
+    function convert() {
+      hideMessage();
+      try {
+        const records = flattenRecords(parseJsonValues(input.value));
+        renderTable(records);
+        showMessage('Response converted successfully.', 'success');
+      } catch (error) {
+        tableContainer.replaceChildren();
+        summary.style.display = 'none';
+        showMessage(error.message, 'error');
+      }
+    }
+    document.getElementById('convertBtn').addEventListener('click', convert);
+    document.getElementById('filterNoColorBtn').addEventListener('click', () => {
+      showOnlyNormalRows = !showOnlyNormalRows;
+      if (showOnlyNormalRows) showOnlyNonNormalRows = false;
+      document.getElementById('filterNoColorBtn').textContent = showOnlyNormalRows ? 'Show All Rows' : 'Show Only Normal Rows';
+      document.getElementById('filterNonNormalBtn').textContent = 'Show Only Non Normal Rows';
+      convert();
+    });
+    document.getElementById('filterNonNormalBtn').addEventListener('click', () => {
+      showOnlyNonNormalRows = !showOnlyNonNormalRows;
+      if (showOnlyNonNormalRows) showOnlyNormalRows = false;
+      document.getElementById('filterNonNormalBtn').textContent = showOnlyNonNormalRows ? 'Show All Rows' : 'Show Only Non Normal Rows';
+      document.getElementById('filterNoColorBtn').textContent = 'Show Only Normal Rows';
+      convert();
+    });
+    document.getElementById('freezeButtonsBtn').addEventListener('click', () => {
+      buttonsFrozen = !buttonsFrozen;
+      document.querySelector('.actions').classList.toggle('frozen', buttonsFrozen);
+      document.getElementById('freezeButtonsBtn').textContent = buttonsFrozen ? 'Unfreeze Buttons' : 'Freeze Buttons';
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      input.value = '';
+      tableContainer.replaceChildren();
+      summary.style.display = 'none';
+      hideMessage();
+      input.focus();
+    });
+    document.getElementById('resetVisitedBtn').addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      document.querySelectorAll('.open-link, .message-open-link').forEach(link => {
+        link.classList.remove('clicked');
+        const badge = link.querySelector('.click-badge');
+        if (badge) badge.textContent = '0';
+      });
+      showMessage('Clicked-link colors have been reset.', 'success');
+    });
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const table = document.getElementById('resultTable');
+      if (!table) {
+        showMessage('Convert a response before copying the table.', 'error');
+        return;
+      }
+      const rows = [...table.rows].map(row =>
+        [...row.cells].slice(0, -1).map(cell => cell.innerText.trim()).join('\t')
+      ).join('\n');
+      try {
+        await navigator.clipboard.writeText(rows);
+        showMessage('Table copied to the clipboard.', 'success');
+      } catch {
+        showMessage('Clipboard access was blocked by the browser.', 'error');
+      }
+    });
+    input.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') convert();
+    });
+  </script>
+</body>
+</html>
