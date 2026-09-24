@@ -9,10 +9,12 @@
     :root{--bg:#f4f7fb;--surface:#fff;--text:#172033;--muted:#667085;--primary:#2563eb;--primary-dark:#1d4ed8;--border:#e3e8ef;--danger:#dc2626;--shadow:0 18px 45px rgba(20,35,65,.14)}
     *{box-sizing:border-box}body{min-height:100vh;margin:0;padding:40px 20px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(37,99,235,.14),transparent 32%),radial-gradient(circle at bottom right,rgba(124,58,237,.10),transparent 30%),var(--bg)}
     button{font:inherit}.page{width:min(1050px,100%);margin:auto}.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:26px}.eyebrow{margin-bottom:9px;color:var(--primary);font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}h1{margin:0;font-size:clamp(2rem,5vw,3.2rem);line-height:1.08;letter-spacing:-.045em}.subtitle{margin:12px 0 0;color:var(--muted);line-height:1.6}.back{flex:none;padding:10px 15px;border:1px solid var(--border);border-radius:12px;color:var(--text);background:#fff;text-decoration:none;font-weight:750;box-shadow:0 7px 18px rgba(20,35,65,.07)}
-    .library{padding:24px;border:1px solid rgba(227,232,239,.95);border-radius:24px;background:rgba(255,255,255,.94);box-shadow:var(--shadow)}.library-head{display:grid;grid-template-columns:minmax(190px,.7fr) 1.5fr 42px;gap:20px;padding:0 18px 12px;color:#8790a2;font-size:.75rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.code-row{width:100%;display:grid;grid-template-columns:minmax(190px,.7fr) 1.5fr 42px;align-items:center;gap:20px;padding:19px 18px;border:1px solid var(--border);border-radius:16px;color:inherit;background:#fff;text-align:left;cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s}.code-row:hover,.code-row:focus-visible{transform:translateY(-2px);border-color:rgba(37,99,235,.42);box-shadow:0 12px 25px rgba(37,99,235,.12);outline:none}.code-name{font-weight:850}.code-description{color:var(--muted);line-height:1.5}.arrow{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;color:var(--primary);background:#eaf1ff;font-size:1.15rem;font-weight:900}.empty-note{margin:18px 4px 0;color:var(--muted);font-size:.84rem}
-    .modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(15,23,42,.58);backdrop-filter:blur(6px)}.modal.open{display:flex}.dialog{width:min(1000px,100%);max-height:calc(100vh - 44px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.25);border-radius:22px;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.3)}.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--border)}.dialog-title{margin:0;font-size:1.15rem}.dialog-actions{display:flex;gap:8px;flex-wrap:wrap}.action{padding:9px 13px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-weight:750;cursor:pointer}.action:hover{background:#f7f9fc}.copy{color:#fff;background:var(--primary);border-color:var(--primary)}.copy:hover{background:var(--primary-dark)}.close{color:var(--danger)}.editor-wrap{min-height:0;flex:1;padding:16px;background:#0f172a}.editor{width:100%;height:min(70vh,690px);display:block;resize:none;padding:17px;border:0;border-radius:13px;outline:none;background:#111827;color:#e5e7eb;font:13px/1.55 Consolas,"Courier New",monospace;tab-size:2;white-space:pre}.editor[readonly]{cursor:text}.dialog-foot{display:flex;justify-content:space-between;gap:15px;padding:11px 20px;color:var(--muted);background:#fff;font-size:.8rem}.editing{color:#b45309;font-weight:800}
+    .library{padding:24px;border:1px solid rgba(227,232,239,.95);border-radius:24px;background:rgba(255,255,255,.94);box-shadow:var(--shadow)}.library-head{display:grid;grid-template-columns:minmax(190px,.7fr) 1.5fr 126px;gap:20px;padding:0 18px 12px;color:#8790a2;font-size:.75rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.code-row-wrap{position:relative}.code-row{width:100%;display:grid;grid-template-columns:minmax(190px,.7fr) 1.5fr 126px;align-items:center;gap:20px;padding:19px 18px;border:1px solid var(--border);border-radius:16px;color:inherit;background:#fff;text-align:left;cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s}.code-row:hover,.code-row:focus-visible{transform:translateY(-2px);border-color:rgba(37,99,235,.42);box-shadow:0 12px 25px rgba(37,99,235,.12);outline:none}.code-name{font-weight:850}.code-description{color:var(--muted);line-height:1.5}.row-end{display:flex;justify-content:flex-end;align-items:center;gap:8px}.message-icon{position:relative;z-index:3;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid transparent;border-radius:50%;font-size:1rem;font-weight:900;line-height:1;cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s}.message-icon:hover,.message-icon:focus-visible{transform:translateY(-2px);outline:none}.info-icon{color:#1d4ed8;border-color:#bfdbfe;background:#dbeafe}.info-icon:hover,.info-icon:focus-visible{background:#bfdbfe;box-shadow:0 7px 16px rgba(37,99,235,.19)}.caution-icon{color:#b45309;border-color:#fde68a;background:#fef3c7}.caution-icon:hover,.caution-icon:focus-visible{background:#fde68a;box-shadow:0 7px 16px rgba(217,119,6,.19)}.arrow{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;color:var(--primary);background:#eaf1ff;font-size:1.15rem;font-weight:900}.empty-note{margin:18px 4px 0;color:var(--muted);font-size:.84rem}
+    .modal,.message-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(15,23,42,.58);backdrop-filter:blur(6px)}.modal.open,.message-modal.open{display:flex}.dialog{width:min(1000px,100%);max-height:calc(100vh - 44px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.25);border-radius:22px;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.3)}.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--border)}.dialog-title{margin:0;font-size:1.15rem}.dialog-actions{display:flex;gap:8px;flex-wrap:wrap}.action{padding:9px 13px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-weight:750;cursor:pointer}.action:hover{background:#f7f9fc}.copy{color:#fff;background:var(--primary);border-color:var(--primary)}.copy:hover{background:var(--primary-dark)}.close{color:var(--danger)}.editor-wrap{min-height:0;flex:1;padding:16px;background:#0f172a}.editor{width:100%;height:min(70vh,690px);display:block;resize:none;padding:17px;border:0;border-radius:13px;outline:none;background:#111827;color:#e5e7eb;font:13px/1.55 Consolas,"Courier New",monospace;tab-size:2;white-space:pre}.editor[readonly]{cursor:text}.dialog-foot{display:flex;justify-content:space-between;gap:15px;padding:11px 20px;color:var(--muted);background:#fff;font-size:.8rem}.editing{color:#b45309;font-weight:800}
+    .message-modal{z-index:10001}.message-dialog{width:min(470px,100%);overflow:hidden;border:1px solid var(--border);border-radius:20px;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.28);animation:messagePopup .18s ease-out}.message-dialog-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--border)}.message-dialog-icon{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;font-weight:900}.message-dialog.info .message-dialog-icon{color:#1d4ed8;background:#dbeafe}.message-dialog.caution .message-dialog-icon{color:#b45309;background:#fef3c7}.message-dialog-title{margin:0;font-size:1.08rem}.message-dialog-text{margin:0;padding:20px;color:var(--muted);line-height:1.65;white-space:pre-wrap}.message-dialog-foot{display:flex;justify-content:flex-end;padding:0 20px 20px}.message-dialog-close{padding:9px 17px;border:0;border-radius:10px;color:#fff;background:var(--primary);font-weight:750;cursor:pointer}.message-dialog-close:hover{background:var(--primary-dark)}
+    @keyframes messagePopup{from{transform:translateY(12px) scale(.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
     .toast{position:fixed;left:50%;bottom:25px;z-index:10000;transform:translate(-50%,20px);padding:11px 16px;border-radius:11px;color:#fff;background:#172033;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s}.toast.show{transform:translate(-50%,0);opacity:1}
-    @media(max-width:680px){body{padding:26px 14px}.topbar{flex-direction:column}.library{padding:15px}.library-head{display:none}.code-row{grid-template-columns:1fr 38px;gap:8px}.code-description{grid-column:1/2}.arrow{grid-column:2;grid-row:1/3}.dialog-head{align-items:flex-start;flex-direction:column}.dialog-actions{width:100%}.action{flex:1}.editor-wrap{padding:10px}.editor{height:66vh}}
+    @media(max-width:680px){body{padding:26px 14px}.topbar{flex-direction:column}.library{padding:15px}.library-head{display:none}.code-row{grid-template-columns:1fr;gap:8px;padding-right:18px}.code-description{grid-column:1}.row-end{justify-content:flex-start;margin-top:5px}.arrow{margin-left:auto}.dialog-head{align-items:flex-start;flex-direction:column}.dialog-actions{width:100%}.action{flex:1}.editor-wrap{padding:10px}.editor{height:66vh}}
   </style>
 </head>
 <body>
@@ -23,11 +25,17 @@
     </header>
     <section class="library" aria-label="Code snippets">
       <div class="library-head"><span>Name</span><span>Description</span><span></span></div>
-      <button class="code-row" id="open-extract-h1" type="button">
-        <span class="code-name">Extract &lt;H1&gt;</span>
-        <span class="code-description">Extract page titles and H1 headings from any list of URLs, with worker controls, progress, copy, and CSV download .</span>
-        <span class="arrow" aria-hidden="true">›</span>
-      </button>
+      <div class="code-row-wrap">
+        <button class="code-row" id="open-extract-h1" type="button">
+          <span class="code-name">Extract &lt;H1&gt;</span>
+          <span class="code-description">Extract page titles and H1 headings from any list of URLs, with worker controls, progress, copy, and CSV download.</span>
+          <span class="row-end">
+            <span class="message-icon info-icon" role="button" tabindex="0" data-message-type="info" aria-label="Show information" title="Information">i</span>
+            <span class="message-icon caution-icon" role="button" tabindex="0" data-message-type="caution" aria-label="Show caution" title="Caution">!</span>
+            <span class="arrow" aria-hidden="true">›</span>
+          </span>
+        </button>
+      </div>
       <p class="empty-note">Add your future snippets as additional rows below this card.</p>
     </section>
   </main>
@@ -36,14 +44,18 @@
     <section class="dialog">
       <header class="dialog-head">
         <h2 class="dialog-title" id="modal-title">Extract &lt;H1&gt;</h2>
-        <div class="dialog-actions">
-          <button class="action" id="edit-button" type="button">Edit</button>
-          <button class="action copy" id="copy-button" type="button">Copy</button>
-          <button class="action close" id="close-button" type="button">Close</button>
-        </div>
+        <div class="dialog-actions"><button class="action" id="edit-button" type="button">Edit</button><button class="action copy" id="copy-button" type="button">Copy</button><button class="action close" id="close-button" type="button">Close</button></div>
       </header>
       <div class="editor-wrap"><textarea class="editor" id="code-editor" readonly spellcheck="false" aria-label="Extract H1 code"></textarea></div>
       <footer class="dialog-foot"><span id="mode-label">View mode</span><span>Esc to close</span></footer>
+    </section>
+  </div>
+
+  <div class="message-modal" id="message-modal" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
+    <section class="message-dialog" id="message-dialog">
+      <header class="message-dialog-head"><span class="message-dialog-icon" id="message-dialog-icon">i</span><h2 class="message-dialog-title" id="message-modal-title">Information</h2></header>
+      <p class="message-dialog-text" id="message-modal-text"></p>
+      <footer class="message-dialog-foot"><button class="message-dialog-close" id="message-modal-close" type="button">Close</button></footer>
     </section>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -51,7 +63,6 @@
   <script id="extract-h1-source" type="text/plain">
 (async function () {
   "use strict";
-
   var PANEL_ID = "universal-h1-extractor";
   var STYLE_ID = "universal-h1-extractor-style";
   var oldPanel = document.getElementById(PANEL_ID);
@@ -124,8 +135,28 @@
     document.getElementById('open-extract-h1').addEventListener('click',openModal);closeButton.addEventListener('click',closeModal);
     editButton.addEventListener('click',()=>{editor.readOnly=!editor.readOnly;if(editor.readOnly){editButton.textContent='Edit';modeLabel.textContent='View mode';modeLabel.classList.remove('editing');showToast('Editing finished')}else{editButton.textContent='Done';modeLabel.textContent='Editing enabled';modeLabel.classList.add('editing');editor.focus()}});
     copyButton.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(editor.value);showToast('Code copied')}catch(error){editor.focus();editor.select();showToast(document.execCommand('copy')?'Code copied':'Copy failed')}});
-    modal.addEventListener('click',event=>{if(event.target===modal)closeModal()});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&modal.classList.contains('open'))closeModal()});
+    modal.addEventListener('click',event=>{if(event.target===modal)closeModal()});
     editor.addEventListener('keydown',event=>{if(event.key==='Tab'&&!editor.readOnly){event.preventDefault();const start=editor.selectionStart,end=editor.selectionEnd;editor.value=editor.value.substring(0,start)+'  '+editor.value.substring(end);editor.selectionStart=editor.selectionEnd=start+2}});
+
+    const messageModal=document.getElementById('message-modal'),messageDialog=document.getElementById('message-dialog'),messageTitle=document.getElementById('message-modal-title'),messageText=document.getElementById('message-modal-text'),messageIcon=document.getElementById('message-dialog-icon'),messageCloseButton=document.getElementById('message-modal-close');
+
+    // EDIT ONLY THESE TWO MESSAGE VALUES.
+    const popupMessages={
+      info:{title:'Information',message:'Add your information message here.'},
+      caution:{title:'Caution',message:'Add your caution message here.'}
+    };
+
+    let lastMessageButton=null;
+    function openMessagePopup(type,clickedButton){const content=popupMessages[type];if(!content)return;lastMessageButton=clickedButton;messageDialog.classList.remove('info','caution');messageDialog.classList.add(type);messageTitle.textContent=content.title;messageText.textContent=content.message;messageIcon.textContent=type==='info'?'i':'!';messageModal.classList.add('open');document.body.style.overflow='hidden';messageCloseButton.focus()}
+    function closeMessagePopup(){messageModal.classList.remove('open');document.body.style.overflow='';if(lastMessageButton)lastMessageButton.focus()}
+    document.querySelectorAll('.message-icon').forEach(button=>{
+      function activate(event){event.preventDefault();event.stopPropagation();openMessagePopup(button.dataset.messageType,button)}
+      button.addEventListener('click',activate);
+      button.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){activate(event)}});
+    });
+    messageCloseButton.addEventListener('click',closeMessagePopup);
+    messageModal.addEventListener('click',event=>{if(event.target===messageModal)closeMessagePopup()});
+    document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;if(messageModal.classList.contains('open'))closeMessagePopup();else if(modal.classList.contains('open'))closeModal()});
   </script>
 </body>
 </html>
