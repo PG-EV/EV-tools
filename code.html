@@ -1,1 +1,1094 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Library</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Custom Scrollbar for Code Blocks */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8; 
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+        </svg>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">Snippet Library</h1>
+      </div>
+      <div class="text-sm text-slate-500 font-medium">
+        <span id="snippet-count">0</span> snippets available
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <!-- Header for the list -->
+      <div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50/50 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+        <div class="col-span-4 sm:col-span-3">Name</div>
+        <div class="col-span-8 sm:col-span-9">Description</div>
+      </div>
+      
+      <!-- List Container -->
+      <div id="library-list" class="divide-y divide-slate-100">
+        <!-- Cards will be injected here via JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <div id="code-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300 overflow-hidden" id="modal-content">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <h2 id="modal-title" class="text-lg font-bold text-slate-800 truncate pr-4">Snippet Name</h2>
+        <div class="flex items-center gap-2">
+          <!-- Action Buttons -->
+          <button id="btn-edit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            Edit
+          </button>
+          <button id="btn-copy" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <span id="btn-copy-text">Copy</span>
+          </button>
+          <button id="btn-close" class="ml-2 inline-flex items-center justify-center p-2 text-slate-400 hover:text-slate-500 hover:bg-slate-100 rounded-lg focus:outline-none transition-colors" title="Close">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Code View/Edit) -->
+      <div class="flex-grow overflow-hidden relative bg-slate-50">
+        <!-- Viewer -->
+        <pre id="code-viewer-container" class="h-full w-full overflow-auto p-6 m-0"><code id="code-viewer" class="code-font text-sm text-slate-800 whitespace-pre"></code></pre>
+        <!-- Editor -->
+        <textarea id="code-editor" class="hidden absolute inset-0 h-full w-full p-6 code-font text-sm text-slate-800 bg-white border-0 focus:ring-0 resize-none outline-none" spellcheck="false"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- DATA ---
+    // You can easily add more snippet objects to this array in the future.
+    // Note: Backticks and ${} inside the snippet string have been escaped to prevent template literal evaluation.
+    const libraryData = [
+      {
+        id: "1",
+        name: "Extract <H1>",
+        description: "Universal H1 and Title Extractor bookmarklet script that scrapes URLs.",
+        code: `(async function () {
+  "use strict";
+
+  var PANEL_ID = "universal-h1-extractor";
+  var STYLE_ID = "universal-h1-extractor-style";
+
+  var oldPanel = document.getElementById(PANEL_ID);
+  var oldStyle = document.getElementById(STYLE_ID);
+
+  if (oldPanel) {
+    oldPanel.remove();
+  }
+
+  if (oldStyle) {
+    oldStyle.remove();
+  }
+
+  var panel = document.createElement("div");
+  panel.id = PANEL_ID;
+
+  panel.innerHTML = \`
+    <div class="extractor-header">
+      <strong>Universal H1 and Title Extractor</strong>
+      <button id="extractor-close" title="Close">X</button>
+    </div>
+
+    <label for="extractor-input">
+      Paste URLs or anchor-tag HTML:
+    </label>
+
+    <textarea
+      id="extractor-input"
+      placeholder="Paste any HTTP or HTTPS URLs here..."
+    ></textarea>
+
+    <div class="extractor-settings">
+      <label for="extractor-workers">Workers:</label>
+
+      <select id="extractor-workers">
+        <option value="1" selected>1 worker</option>
+        <option value="2">2 workers</option>
+        <option value="3">3 workers</option>
+        <option value="5">5 workers</option>
+        <option value="10">10 workers</option>
+        <option value="15">15 workers</option>
+        <option value="20">20 workers</option>
+        <option value="25">25 workers</option>
+        <option value="30">30 workers</option>
+        <option value="40">40 workers</option>
+        <option value="50">50 workers</option>
+      </select>
+
+      <label class="extractor-checkbox">
+        <input id="extractor-include-url" type="checkbox" checked>
+        Include URL
+      </label>
+
+      <button id="extractor-start">Start</button>
+      <button id="extractor-stop" disabled>Stop</button>
+    </div>
+
+    <div class="extractor-progress-container">
+      <div id="extractor-progress-bar"></div>
+      <span id="extractor-progress-text">0%</span>
+    </div>
+
+    <div id="extractor-status">
+      Waiting for input
+    </div>
+
+    <textarea
+      id="extractor-results"
+      placeholder="Input URL, final URL, title, H1, HTTP status, and errors will appear here..."
+      readonly
+    ></textarea>
+
+    <div class="extractor-actions">
+      <button id="extractor-copy" disabled>Copy Results</button>
+      <button id="extractor-download" disabled>Download CSV</button>
+      <button id="extractor-clear">Clear</button>
+    </div>
+  \`;
+
+  document.body.appendChild(panel);
+
+  var style = document.createElement("style");
+  style.id = STYLE_ID;
+
+  style.textContent = \`
+    #\${PANEL_ID} {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 580px;
+      max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      z-index: 2147483647;
+      box-sizing: border-box;
+      padding: 16px;
+      border: 1px solid #bbbbbb;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #222222;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    #\${PANEL_ID} * {
+      box-sizing: border-box;
+    }
+
+    #\${PANEL_ID} .extractor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+
+    #extractor-close {
+      width: 30px;
+      height: 30px;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 5px;
+      background: #eeeeee !important;
+      color: #222222 !important;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #extractor-input,
+    #extractor-results {
+      display: block;
+      width: 100%;
+      min-height: 150px;
+      margin-top: 7px;
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid #aaaaaa;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #222222;
+      resize: vertical;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    #extractor-results {
+      min-height: 160px;
+      margin-top: 12px;
+      white-space: pre;
+    }
+
+    #\${PANEL_ID} .extractor-settings,
+    #\${PANEL_ID} .extractor-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #\${PANEL_ID} .extractor-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-right: auto;
+    }
+
+    #\${PANEL_ID} select,
+    #\${PANEL_ID} button {
+      padding: 8px 12px;
+      border: 1px solid #999999;
+      border-radius: 5px;
+      background: #f7f7f7;
+      color: #222222;
+      cursor: pointer;
+    }
+
+    #extractor-start {
+      background: #00838f !important;
+      color: #ffffff !important;
+      border-color: #00838f !important;
+    }
+
+    #extractor-stop {
+      background: #c62828 !important;
+      color: #ffffff !important;
+      border-color: #c62828 !important;
+    }
+
+    #\${PANEL_ID} button:disabled,
+    #\${PANEL_ID} select:disabled,
+    #\${PANEL_ID} input:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    #\${PANEL_ID} .extractor-progress-container {
+      position: relative;
+      width: 100%;
+      height: 24px;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #dddddd;
+    }
+
+    #extractor-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: #00838f;
+      transition: width 0.2s ease;
+    }
+
+    #extractor-progress-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #111111;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    #extractor-status {
+      margin-top: 10px;
+      padding: 9px;
+      border-radius: 5px;
+      background: #f3f3f3;
+      font-size: 13px;
+      word-break: break-word;
+    }
+  \`;
+
+  document.head.appendChild(style);
+
+  var inputElement = document.getElementById("extractor-input");
+  var workersElement = document.getElementById("extractor-workers");
+  var includeUrlElement = document.getElementById("extractor-include-url");
+  var startButton = document.getElementById("extractor-start");
+  var stopButton = document.getElementById("extractor-stop");
+  var copyButton = document.getElementById("extractor-copy");
+  var downloadButton = document.getElementById("extractor-download");
+  var clearButton = document.getElementById("extractor-clear");
+  var closeButton = document.getElementById("extractor-close");
+  var resultsElement = document.getElementById("extractor-results");
+  var progressBar = document.getElementById("extractor-progress-bar");
+  var progressText = document.getElementById("extractor-progress-text");
+  var statusElement = document.getElementById("extractor-status");
+
+  var stopped = false;
+  var running = false;
+  var finalResults = [];
+  var activeControllers = [];
+
+  function decodeHtmlEntities(value) {
+    var textarea = document.createElement("textarea");
+    textarea.innerHTML = value;
+    return textarea.value;
+  }
+
+  function cleanUrl(url) {
+    if (!url) {
+      return "";
+    }
+
+    var cleanedUrl = decodeHtmlEntities(url)
+      .replace(/^[\\s"'*(<\\[]+/, "")
+      .replace(/[\\s"')>\\]},;]+$/g, "")
+      .trim();
+
+    try {
+      var parsedUrl = new URL(cleanedUrl);
+
+      if (
+        parsedUrl.protocol !== "http:" &&
+        parsedUrl.protocol !== "https:"
+      ) {
+        return "";
+      }
+
+      parsedUrl.hash = "";
+
+      return parsedUrl.href;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function extractUrls(input) {
+    var decodedInput = decodeHtmlEntities(input)
+      .replace(/<br\\s*\\/?>/gi, "\\n");
+
+    var foundUrls = [];
+
+    /*
+     * First extract URLs from href attributes.
+     */
+    try {
+      var parsedHtml = new DOMParser().parseFromString(
+        decodedInput,
+        "text/html"
+      );
+
+      var links = parsedHtml.querySelectorAll("a[href]");
+
+      Array.prototype.forEach.call(links, function (link) {
+        var href = link.getAttribute("href");
+        var cleanedHref = cleanUrl(href);
+
+        if (cleanedHref) {
+          foundUrls.push(cleanedHref);
+        }
+      });
+    } catch (error) {
+      console.warn("Could not parse anchor-tag HTML:", error);
+    }
+
+    /*
+     * Extract all plain HTTP and HTTPS URLs.
+     */
+    var plainUrlMatches = decodedInput.match(
+      /https?:\\/\\/[^\\s<>"']+/gi
+    ) || [];
+
+    plainUrlMatches.forEach(function (url) {
+      var cleanedUrl = cleanUrl(url);
+
+      if (cleanedUrl) {
+        foundUrls.push(cleanedUrl);
+      }
+    });
+
+    /*
+     * Remove duplicates while keeping the original order.
+     */
+    return foundUrls.filter(function (url, index, array) {
+      return array.indexOf(url) === index;
+    });
+  }
+
+  function cleanCell(value) {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value)
+      .replace(/\\t/g, " ")
+      .replace(/\\r?\\n/g, " ")
+      .replace(/\\s+/g, " ")
+      .trim();
+  }
+
+  function updateProgress(completed, total, success, errors) {
+    var percentage = total === 0
+      ? 0
+      : Math.round((completed / total) * 100);
+
+    progressBar.style.width = percentage + "%";
+    progressText.textContent = percentage + "%";
+
+    statusElement.textContent =
+      "Completed: " + completed + "/" + total +
+      " | Success: " + success +
+      " | Errors: " + errors;
+  }
+
+  function formatResults(results) {
+    var includeUrl = includeUrlElement.checked;
+
+    return results
+      .filter(function (item) {
+        return item !== undefined;
+      })
+      .map(function (item) {
+        var columns = [];
+
+        if (includeUrl) {
+          columns.push(cleanCell(item.inputUrl));
+          columns.push(cleanCell(item.finalUrl));
+        }
+
+        columns.push(cleanCell(item.title));
+        columns.push(cleanCell(item.h1));
+        columns.push(cleanCell(item.status));
+        columns.push(cleanCell(item.error));
+
+        return columns.join("\\t");
+      })
+      .join("\\n");
+  }
+
+  function escapeCsvCell(value) {
+    var cleanedValue = cleanCell(value);
+
+    if (
+      cleanedValue.indexOf(",") !== -1 ||
+      cleanedValue.indexOf('"') !== -1 ||
+      cleanedValue.indexOf("\\n") !== -1
+    ) {
+      return '"' + cleanedValue.replace(/"/g, '""') + '"';
+    }
+
+    return cleanedValue;
+  }
+
+  function formatCsvResults(results) {
+    var rows = [
+      [
+        "Input URL",
+        "Final URL",
+        "Title",
+        "H1",
+        "HTTP Status",
+        "Error"
+      ]
+    ];
+
+    results
+      .filter(function (item) {
+        return item !== undefined;
+      })
+      .forEach(function (item) {
+        rows.push([
+          item.inputUrl,
+          item.finalUrl,
+          item.title,
+          item.h1,
+          item.status,
+          item.error
+        ]);
+      });
+
+    return rows
+      .map(function (row) {
+        return row.map(escapeCsvCell).join(",");
+      })
+      .join("\\r\\n");
+  }
+
+  function getStatusDescription(response) {
+    if (!response) {
+      return "";
+    }
+
+    var statusText = response.statusText
+      ? " " + response.statusText
+      : "";
+
+    return String(response.status) + statusText;
+  }
+
+  async function processUrl(url, index) {
+    var controller = new AbortController();
+    activeControllers.push(controller);
+
+    var timeoutId = setTimeout(function () {
+      controller.abort();
+    }, 30000);
+
+    try {
+      var response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        redirect: "follow",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          "Accept": "text/html,application/xhtml+xml"
+        }
+      });
+
+      var contentType = response.headers.get("content-type") || "";
+      var html = await response.text();
+
+      var isHtml =
+        contentType.toLowerCase().indexOf("text/html") !== -1 ||
+        contentType.toLowerCase().indexOf("application/xhtml+xml") !== -1 ||
+        /^\\s*<!doctype html/i.test(html) ||
+        /^\\s*<html/i.test(html);
+
+      if (!isHtml) {
+        return {
+          index: index,
+          inputUrl: url,
+          finalUrl: response.url || url,
+          title: "Not an HTML page",
+          h1: "Not an HTML page",
+          status: getStatusDescription(response),
+          error: response.ok
+            ? "Content-Type: " + (contentType || "Unknown")
+            : "HTTP error"
+        };
+      }
+
+      var page = new DOMParser().parseFromString(
+        html,
+        "text/html"
+      );
+
+      var titleElement = page.querySelector("title");
+      var titleText = titleElement
+        ? titleElement.textContent.replace(/\\s+/g, " ").trim()
+        : "";
+
+      var heading = page.querySelector("h1");
+      var h1Text = heading
+        ? heading.textContent.replace(/\\s+/g, " ").trim()
+        : "";
+
+      var errorMessages = [];
+
+      if (!response.ok) {
+        errorMessages.push("HTTP error");
+      }
+
+      if (!titleText) {
+        errorMessages.push("Title not found");
+      }
+
+      if (!h1Text) {
+        errorMessages.push("H1 not found");
+      }
+
+      return {
+        index: index,
+        inputUrl: url,
+        finalUrl: response.url || url,
+        title: titleText || "Title not found",
+        h1: h1Text || "H1 not found",
+        status: getStatusDescription(response),
+        error: errorMessages.join("; ")
+      };
+    } catch (error) {
+      var message = "Unknown error";
+
+      if (error && error.name === "AbortError") {
+        message = stopped
+          ? "Request stopped"
+          : "Request timed out after 30 seconds";
+      } else if (error && error.message) {
+        message = error.message;
+      }
+
+      if (
+        message === "Failed to fetch" ||
+        message.indexOf("NetworkError") !== -1
+      ) {
+        message =
+          "Fetch blocked, possibly by CORS, login, CAPTCHA, or network policy";
+      }
+
+      return {
+        index: index,
+        inputUrl: url,
+        finalUrl: "",
+        title: "Request failed",
+        h1: "Request failed",
+        status: "",
+        error: message
+      };
+    } finally {
+      clearTimeout(timeoutId);
+
+      var controllerIndex = activeControllers.indexOf(controller);
+
+      if (controllerIndex !== -1) {
+        activeControllers.splice(controllerIndex, 1);
+      }
+    }
+  }
+
+  startButton.addEventListener("click", async function () {
+    if (running) {
+      return;
+    }
+
+    var urls = extractUrls(inputElement.value);
+
+    if (urls.length === 0) {
+      statusElement.textContent =
+        "No valid HTTP or HTTPS URLs found in the input.";
+      return;
+    }
+
+    var workerCount = parseInt(workersElement.value, 10);
+
+    if (
+      isNaN(workerCount) ||
+      workerCount < 1
+    ) {
+      workerCount = 1;
+    }
+
+    workerCount = Math.min(workerCount, urls.length);
+
+    stopped = false;
+    running = true;
+    finalResults = new Array(urls.length);
+    activeControllers = [];
+
+    var nextIndex = 0;
+    var completed = 0;
+    var success = 0;
+    var errors = 0;
+
+    startButton.disabled = true;
+    stopButton.disabled = false;
+    copyButton.disabled = true;
+    downloadButton.disabled = true;
+    inputElement.disabled = true;
+    workersElement.disabled = true;
+    includeUrlElement.disabled = true;
+    resultsElement.value = "";
+
+    updateProgress(0, urls.length, 0, 0);
+
+    async function worker(workerNumber) {
+      while (!stopped) {
+        var currentIndex = nextIndex;
+        nextIndex++;
+
+        if (currentIndex >= urls.length) {
+          break;
+        }
+
+        statusElement.textContent =
+          "Worker " + workerNumber +
+          " processing " + (currentIndex + 1) +
+          " of " + urls.length;
+
+        var result = await processUrl(
+          urls[currentIndex],
+          currentIndex
+        );
+
+        finalResults[currentIndex] = result;
+        completed++;
+
+        if (result.error === "") {
+          success++;
+        } else {
+          errors++;
+        }
+
+        resultsElement.value = formatResults(finalResults);
+        resultsElement.scrollTop = resultsElement.scrollHeight;
+
+        updateProgress(
+          completed,
+          urls.length,
+          success,
+          errors
+        );
+      }
+    }
+
+    var workerTasks = [];
+
+    for (var i = 0; i < workerCount; i++) {
+      workerTasks.push(worker(i + 1));
+    }
+
+    await Promise.all(workerTasks);
+
+    running = false;
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    inputElement.disabled = false;
+    workersElement.disabled = false;
+    includeUrlElement.disabled = false;
+
+    var hasResults = finalResults.some(function (item) {
+      return item !== undefined;
+    });
+
+    copyButton.disabled = !hasResults;
+    downloadButton.disabled = !hasResults;
+
+    if (stopped) {
+      statusElement.textContent =
+        "Stopped. Completed " + completed +
+        " of " + urls.length +
+        " | Success: " + success +
+        " | Errors: " + errors;
+    } else {
+      progressBar.style.width = "100%";
+      progressText.textContent = "100%";
+
+      statusElement.textContent =
+        "Finished " + urls.length +
+        " URLs | Success: " + success +
+        " | Errors: " + errors;
+
+      console.table(
+        finalResults.map(function (item) {
+          return {
+            "Input URL": item.inputUrl,
+            "Final URL": item.finalUrl,
+            "Title": item.title,
+            "H1": item.h1,
+            "Status": item.status,
+            "Error": item.error
+          };
+        })
+      );
+    }
+  });
+
+  stopButton.addEventListener("click", function () {
+    stopped = true;
+    stopButton.disabled = true;
+
+    activeControllers.forEach(function (controller) {
+      try {
+        controller.abort();
+      } catch (error) {
+        console.warn(error);
+      }
+    });
+
+    statusElement.textContent =
+      "Stopping active requests...";
+  });
+
+  copyButton.addEventListener("click", async function () {
+    var output = formatResults(finalResults);
+
+    try {
+      await navigator.clipboard.writeText(output);
+
+      statusElement.textContent =
+        "Results copied to clipboard.";
+    } catch (error) {
+      resultsElement.focus();
+      resultsElement.select();
+
+      var copied = document.execCommand("copy");
+
+      statusElement.textContent = copied
+        ? "Results selected and copied."
+        : "Copy failed. Select the results manually.";
+    }
+  });
+
+  downloadButton.addEventListener("click", function () {
+    var output = formatCsvResults(finalResults);
+
+    var blob = new Blob(
+      ["\\uFEFF" + output],
+      {
+        type: "text/csv;charset=utf-8"
+      }
+    );
+
+    var downloadUrl = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = "universal-h1-title-results.csv";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(function () {
+      URL.revokeObjectURL(downloadUrl);
+    }, 1000);
+
+    statusElement.textContent =
+      "CSV file downloaded.";
+  });
+
+  clearButton.addEventListener("click", function () {
+    if (running) {
+      return;
+    }
+
+    inputElement.value = "";
+    resultsElement.value = "";
+    finalResults = [];
+
+    progressBar.style.width = "0%";
+    progressText.textContent = "0%";
+    statusElement.textContent = "Waiting for input";
+
+    copyButton.disabled = true;
+    downloadButton.disabled = true;
+  });
+
+  closeButton.addEventListener("click", function () {
+    stopped = true;
+
+    activeControllers.forEach(function (controller) {
+      try {
+        controller.abort();
+      } catch (error) {
+        console.warn(error);
+      }
+    });
+
+    panel.remove();
+
+    var extractorStyle = document.getElementById(STYLE_ID);
+
+    if (extractorStyle) {
+      extractorStyle.remove();
+    }
+  });
+})();`
+      }
+    ];
+
+    // --- DOM ELEMENTS ---
+    const libraryList = document.getElementById('library-list');
+    const snippetCount = document.getElementById('snippet-count');
+    const modal = document.getElementById('code-modal');
+    const modalContent = document.getElementById('modal-content');
+    const modalTitle = document.getElementById('modal-title');
+    const codeViewerContainer = document.getElementById('code-viewer-container');
+    const codeViewer = document.getElementById('code-viewer');
+    const codeEditor = document.getElementById('code-editor');
+    const btnEdit = document.getElementById('btn-edit');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnCopyText = document.getElementById('btn-copy-text');
+    const btnClose = document.getElementById('btn-close');
+
+    let currentSnippetId = null;
+    let isEditing = false;
+
+    // --- FUNCTIONS ---
+    function renderLibrary() {
+      libraryList.innerHTML = '';
+      snippetCount.textContent = libraryData.length;
+
+      libraryData.forEach(snippet => {
+        const card = document.createElement('div');
+        card.className = "grid grid-cols-12 gap-4 px-6 py-5 hover:bg-slate-50 cursor-pointer transition-colors border-l-4 border-transparent hover:border-indigo-500 group";
+        card.onclick = () => openModal(snippet.id);
+
+        card.innerHTML = `
+          <div class="col-span-4 sm:col-span-3 flex items-center">
+            <span class="font-medium text-slate-800 group-hover:text-indigo-700 transition-colors">${snippet.name}</span>
+          </div>
+          <div class="col-span-8 sm:col-span-9 flex items-center text-slate-600 text-sm leading-relaxed">
+            ${snippet.description}
+          </div>
+        `;
+        libraryList.appendChild(card);
+      });
+    }
+
+    function openModal(id) {
+      const snippet = libraryData.find(s => s.id === id);
+      if (!snippet) return;
+
+      currentSnippetId = id;
+      modalTitle.textContent = snippet.name;
+      codeViewer.textContent = snippet.code;
+      codeEditor.value = snippet.code;
+
+      // Ensure we start in view mode
+      setEditMode(false);
+
+      // Show modal with animation
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      // small delay to allow display block to apply before animating opacity/transform
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+      }, 10);
+      
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+
+    function closeModal() {
+      modal.classList.add('opacity-0');
+      modalContent.classList.add('scale-95');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+      }, 300); // match duration-300
+    }
+
+    function setEditMode(edit) {
+      isEditing = edit;
+      if (isEditing) {
+        // Switch to editor
+        codeViewerContainer.classList.add('hidden');
+        codeEditor.classList.remove('hidden');
+        btnEdit.innerHTML = `
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          Save
+        `;
+        btnEdit.classList.replace('text-slate-700', 'text-green-700');
+        btnEdit.classList.replace('bg-white', 'bg-green-50');
+        btnEdit.classList.replace('border-slate-300', 'border-green-200');
+        codeEditor.focus();
+      } else {
+        // Switch to viewer
+        codeEditor.classList.add('hidden');
+        codeViewerContainer.classList.remove('hidden');
+        btnEdit.innerHTML = `
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          Edit
+        `;
+        btnEdit.classList.replace('text-green-700', 'text-slate-700');
+        btnEdit.classList.replace('bg-green-50', 'bg-white');
+        btnEdit.classList.replace('border-green-200', 'border-slate-300');
+      }
+    }
+
+    // --- EVENT LISTENERS ---
+    btnClose.addEventListener('click', closeModal);
+    
+    // Close modal on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    btnEdit.addEventListener('click', () => {
+      if (isEditing) {
+        // Save changes to array
+        const snippetIndex = libraryData.findIndex(s => s.id === currentSnippetId);
+        if (snippetIndex !== -1) {
+          libraryData[snippetIndex].code = codeEditor.value;
+          codeViewer.textContent = codeEditor.value;
+        }
+        setEditMode(false);
+      } else {
+        setEditMode(true);
+      }
+    });
+
+    btnCopy.addEventListener('click', async () => {
+      const codeToCopy = isEditing ? codeEditor.value : codeViewer.textContent;
+      
+      try {
+        await navigator.clipboard.writeText(codeToCopy);
+        triggerCopySuccess();
+      } catch (err) {
+        // Fallback for older browsers / iframe restrictions
+        const textarea = document.createElement('textarea');
+        textarea.value = codeToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          triggerCopySuccess();
+        } catch (e) {
+          console.error('Failed to copy', e);
+          btnCopyText.textContent = 'Failed';
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+    });
+
+    function triggerCopySuccess() {
+      const originalText = btnCopyText.textContent;
+      btnCopyText.textContent = 'Copied!';
+      btnCopy.classList.replace('bg-indigo-600', 'bg-green-600');
+      btnCopy.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
+      
+      setTimeout(() => {
+        btnCopyText.textContent = originalText;
+        btnCopy.classList.replace('bg-green-600', 'bg-indigo-600');
+        btnCopy.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
+      }, 2000);
+    }
+
+    // Initialize the library UI
+    renderLibrary();
+
+  </script>
+</body>
+</html>
