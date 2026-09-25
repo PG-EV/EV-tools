@@ -870,298 +870,1191 @@ Private oldEnableEvents As Boolean
 Private oldDisplayAlerts As Boolean
 
 Sub Main()
+
     On Error GoTo ErrHandler
+
     StartSafeMode
+
     ProgressBar 0, 100, "Starting dump..."
-    MsgBoxWithOptions
-    ProgressBar 5, 100, "Copying Google data...": CopyGoogleDataToNewSheet
-    ProgressBar 15, 100, "Sorting Sheet1...": SortAscendingColumnBExceptFirstRow
+
+    Call MsgBoxWithOptions
+
+    ProgressBar 5, 100, "Copying Google data..."
+    Call CopyGoogleDataToNewSheet
+
+    ProgressBar 15, 100, "Sorting Sheet1..."
+    Call SortAscendingColumnBExceptFirstRow
+
     ProgressBar 25, 100, "Creating comparison sheets..."
-    BuildComparisonSheet "YP&amp;SP", "Super Pages", "Yellow Pages", "Missing YP", "Missing SP", "", ""
-    BuildComparisonSheet "V,W", "Vitals", "WebMD", "Missing Vitals", "Missing WebMD", "Duplicate Vitals", "Duplicate WebMD"
-    BuildComparisonSheet "HG,SC", "Healthgrades", "Sharecare", "Missing Healthgrades", "Missing Sharecare", "Duplicate Healthgrades", "Duplicate Sharecare"
-    ProgressBar 58, 100, "Creating duplicate source sheets...": FilterAndCopySourceHighlightDuplicates "Doctor.com", "DUP DOC"
-    ProgressBar 68, 100, "Counting harvesters...": HarvesterCount
-    ProgressBar 75, 100, "Creating docspot sheet...": Docspot_Combined_Compared
-    ProgressBar 82, 100, "Copying Wellness URLs...": CopyAndFormatURLs
-    ProgressBar 88, 100, "Copying RateMDs URLs...": CopyRateMDsLinks
-    ProgressBar 93, 100, "Creating Scope check...": ScopeCheck
-    ProgressBar 98, 100, "Calculating differences...": CalculateColumnCDifference
+    Call BuildComparisonSheet("YP&SP", "Super Pages", "Yellow Pages", "Missing YP", "Missing SP", "", "")
+    Call BuildComparisonSheet("V,W", "Vitals", "WebMD", "Missing Vitals", "Missing WebMD", "Duplicate Vitals", "Duplicate WebMD")
+    Call BuildComparisonSheet("HG,SC", "Healthgrades", "Sharecare", "Missing Healthgrades", "Missing Sharecare", "Duplicate Healthgrades", "Duplicate Sharecare")
+
+    ProgressBar 58, 100, "Creating duplicate source sheets..."
+    Call FilterAndCopySourceHighlightDuplicates("Doctor.com", "DUP DOC")
+
+    ProgressBar 68, 100, "Counting harvesters..."
+    Call HarvesterCount
+
+    ProgressBar 75, 100, "Creating docspot sheet..."
+    Call Docspot_Combined_Compared
+
+    ProgressBar 82, 100, "Copying Wellness URLs..."
+    Call CopyAndFormatURLs
+
+    ProgressBar 88, 100, "Copying RateMDs URLs..."
+    Call CopyRateMDsLinks
+
+    ProgressBar 93, 100, "Creating Scope check..."
+    Call ScopeCheck
+
+    ProgressBar 98, 100, "Calculating differences..."
+    Call CalculateColumnCDifference
+
     ProgressBar 100, 100, "Completed."
+
 CleanExit:
     RestoreExcel
     MsgBox "All scripts have been run successfully.", vbInformation
     Exit Sub
+
 ErrHandler:
     RestoreExcel
-    MsgBox "Error: " &amp; Err.Description, vbCritical, "Macro stopped"
+    MsgBox "Error: " & Err.Description, vbCritical, "Macro stopped"
+
 End Sub
 
 Sub StartSafeMode()
-    oldCalc = Application.Calculation: oldStatusBar = Application.StatusBar
-    oldScreenUpdating = Application.ScreenUpdating: oldEnableEvents = Application.EnableEvents
+
+    oldCalc = Application.Calculation
+    oldStatusBar = Application.StatusBar
+    oldScreenUpdating = Application.ScreenUpdating
+    oldEnableEvents = Application.EnableEvents
     oldDisplayAlerts = Application.DisplayAlerts
-    Application.ScreenUpdating = False: Application.EnableEvents = False
-    Application.DisplayAlerts = False: Application.Calculation = xlCalculationManual
+
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+    Application.Calculation = xlCalculationManual
     Application.StatusBar = False
+
 End Sub
 
 Sub RestoreExcel()
-    Application.ScreenUpdating = oldScreenUpdating: Application.EnableEvents = oldEnableEvents
-    Application.DisplayAlerts = oldDisplayAlerts: Application.Calculation = oldCalc
-    Application.StatusBar = False: Application.CutCopyMode = False
+
+    Application.ScreenUpdating = oldScreenUpdating
+    Application.EnableEvents = oldEnableEvents
+    Application.DisplayAlerts = oldDisplayAlerts
+    Application.Calculation = oldCalc
+    Application.StatusBar = False
+    Application.CutCopyMode = False
+
 End Sub
 
 Sub ProgressBar(ByVal currentStep As Long, ByVal totalSteps As Long, ByVal message As String)
-    Dim pct As Double, filledBars As Long
+
+    Dim pct As Double
+    Dim filledBars As Long
+    Dim emptyBars As Long
+    Dim barText As String
+
     If totalSteps = 0 Then totalSteps = 1
-    pct = currentStep / totalSteps: If pct &lt; 0 Then pct = 0 Else If pct &gt; 1 Then pct = 1
+
+    pct = currentStep / totalSteps
+
+    If pct < 0 Then pct = 0
+    If pct > 1 Then pct = 1
+
     filledBars = CLng(pct * 30)
-    Application.StatusBar = message &amp; "  [" &amp; String(filledBars, "#") &amp; String(30 - filledBars, "-") &amp; "] " &amp; Format(pct, "0%")
+    emptyBars = 30 - filledBars
+
+    barText = String(filledBars, "#") & String(emptyBars, "-")
+
+    Application.StatusBar = message & "  [" & barText & "] " & Format(pct, "0%")
     DoEvents
+
 End Sub
 
 Function NormalizeText(ByVal value As Variant) As String
-    If IsError(value) Then NormalizeText = "": Exit Function
-    NormalizeText = LCase(Trim(Application.WorksheetFunction.Clean(Replace(Replace(CStr(value), vbCr, ""), vbLf, ""))))
+
+    Dim s As String
+
+    If IsError(value) Then
+        NormalizeText = ""
+        Exit Function
+    End If
+
+    s = CStr(value)
+    s = Replace(s, vbCr, "")
+    s = Replace(s, vbLf, "")
+    s = Application.WorksheetFunction.Clean(s)
+    s = Trim(s)
+
+    NormalizeText = LCase(s)
+
 End Function
 
 Function GetHeaderColumn(ws As Worksheet, headerName As String) As Long
-    Dim c As Long, lastCol As Long: lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
+    Dim lastCol As Long
+    Dim c As Long
+
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
     For c = 1 To lastCol
-        If NormalizeText(ws.Cells(1, c).Value) = NormalizeText(headerName) Then GetHeaderColumn = c: Exit Function
+        If NormalizeText(ws.Cells(1, c).value) = NormalizeText(headerName) Then
+            GetHeaderColumn = c
+            Exit Function
+        End If
     Next c
-    Err.Raise vbObjectError + 1001, , "Header '" &amp; headerName &amp; "' not found in sheet '" &amp; ws.Name &amp; "'."
+
+    Err.Raise vbObjectError + 1001, , "Header '" & headerName & "' not found in sheet '" & ws.Name & "'."
+
 End Function
 
 Function LastRowByColumn(ws As Worksheet, colNum As Long) As Long
+
     LastRowByColumn = ws.Cells(ws.Rows.Count, colNum).End(xlUp).Row
+
 End Function
 
 Sub CreateOrClearSheet(sheetName As String)
-    Dim ws As Worksheet: On Error Resume Next: Set ws = ThisWorkbook.Sheets(sheetName): On Error GoTo 0
-    If ws Is Nothing Then Set ws = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count)): ws.Name = sheetName Else If ws.AutoFilterMode Then ws.AutoFilterMode = False: ws.Cells.Clear: ws.Cells.FormatConditions.Delete
+
+    Dim ws As Worksheet
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(sheetName)
+    On Error GoTo 0
+
+    If ws Is Nothing Then
+        Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        ws.Name = sheetName
+    Else
+        If ws.AutoFilterMode Then ws.AutoFilterMode = False
+        ws.Cells.Clear
+        ws.Cells.FormatConditions.Delete
+    End If
+
 End Sub
 
 Sub DeleteSheetIfExists(sheetName As String)
-    Dim ws As Worksheet: On Error Resume Next: Set ws = ThisWorkbook.Sheets(sheetName): On Error GoTo 0
-    If Not ws Is Nothing Then Application.DisplayAlerts = False: ws.Delete: Application.DisplayAlerts = oldDisplayAlerts
+
+    Dim ws As Worksheet
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(sheetName)
+    On Error GoTo 0
+
+    If Not ws Is Nothing Then
+        Application.DisplayAlerts = False
+        ws.Delete
+        Application.DisplayAlerts = oldDisplayAlerts
+    End If
+
 End Sub
 
 Sub MsgBoxWithOptions()
-    Dim result As Integer: result = MsgBox("Do you want to check your dump?", vbYesNoCancel + vbQuestion, "Confirmation")
-    If result = vbYes Then MsgBox "Results may be inaccurate.", vbInformation Else MsgBox "The dump will run anyway.", vbInformation
+
+    Dim result As Integer
+
+    result = MsgBox("Do you want to check your dump?", vbYesNoCancel + vbQuestion, "Confirmation")
+
+    Select Case result
+        Case vbYes
+            MsgBox "Results may be inaccurate.", vbInformation, "Result"
+        Case vbNo
+            MsgBox "You clicked No. The dump will run anyway.", vbInformation, "Result"
+        Case vbCancel
+            MsgBox "You clicked Cancel. The dump will run anyway.", vbInformation, "Result"
+    End Select
+
 End Sub
 
 Sub CopyGoogleDataToNewSheet()
-    Dim src As Worksheet, dst As Worksheet, cols, d As Object, i As Long, r As Long, j As Long, sc As Long, pc As Long, pTarget As Long, v
-    Set src = Sheets("Sheet1"): sc = GetHeaderColumn(src, SOURCE_HEADER): pc = GetHeaderColumn(src, PLACE_ID_HEADER)
-    CreateOrClearSheet "Place ID_" &amp; src.Name: Set dst = Sheets("Place ID_" &amp; src.Name)
-    Set d = CreateObject("Scripting.Dictionary"): cols = Array(2, 7, 14, 15, sc, pc)
-    For Each v In cols
-        If NormalizeText(src.Cells(1, CLng(v)).Value) &lt;&gt; "modified_time" And Not d.Exists(CStr(v)) Then d.Add CStr(v), d.Count + 1: If CLng(v) = pc Then pTarget = d(CStr(v))
-    Next v
-    For Each v In cols
-        If d.Exists(CStr(v)) Then dst.Cells(1, d(CStr(v))).Value = src.Cells(1, CLng(v)).Value
-    Next v
-    r = 2
-    For i = 2 To LastRowByColumn(src, sc)
-        If NormalizeText(src.Cells(i, sc).Value) = "google" Then
-            For Each v In cols
-                If d.Exists(CStr(v)) Then dst.Cells(r, d(CStr(v))).Value = src.Cells(i, CLng(v)).Value
-            Next v
-            r = r + 1
+
+    Dim wsSource As Worksheet
+    Dim wsTarget As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim targetRow As Long
+    Dim newSheetName As String
+
+    Dim sourceCol As Long
+    Dim placeIdCol As Long
+    Dim placeIdTargetCol As Long
+
+    Dim candidateCols As Variant
+    Dim colMap As Object
+    Dim colList As Collection
+    Dim v As Variant
+    Dim srcCol As Long
+    Dim headerText As String
+    Dim targetCol As Long
+
+    Set wsSource = ThisWorkbook.Sheets("Sheet1")
+
+    sourceCol = GetHeaderColumn(wsSource, SOURCE_HEADER)
+    placeIdCol = GetHeaderColumn(wsSource, PLACE_ID_HEADER)
+
+    lastRow = LastRowByColumn(wsSource, sourceCol)
+
+    newSheetName = "Place ID_" & wsSource.Name
+
+    Call CreateOrClearSheet(newSheetName)
+    Set wsTarget = ThisWorkbook.Sheets(newSheetName)
+
+    Set colMap = CreateObject("Scripting.Dictionary")
+    Set colList = New Collection
+
+    candidateCols = Array(2, 7, 14, 15, sourceCol, placeIdCol)
+
+    For Each v In candidateCols
+
+        srcCol = CLng(v)
+        headerText = NormalizeText(wsSource.Cells(1, srcCol).value)
+
+        If headerText <> "modified_time" Then
+
+            If Not colMap.Exists(CStr(srcCol)) Then
+                colList.Add srcCol
+                colMap.Add CStr(srcCol), colList.Count
+            End If
+
+            If srcCol = placeIdCol Then
+                placeIdTargetCol = CLng(colMap(CStr(srcCol)))
+            End If
+
         End If
+
+    Next v
+
+    If placeIdTargetCol = 0 Then
+        Err.Raise vbObjectError + 1002, , "PLACE_ID column was not copied. Please check the PLACE_ID header."
+    End If
+
+    For targetCol = 1 To colList.Count
+        srcCol = CLng(colList(targetCol))
+        wsTarget.Cells(1, targetCol).value = wsSource.Cells(1, srcCol).value
+    Next targetCol
+
+    targetRow = 2
+
+    For i = 2 To lastRow
+
+        If NormalizeText(wsSource.Cells(i, sourceCol).value) = "google" Then
+
+            For targetCol = 1 To colList.Count
+                srcCol = CLng(colList(targetCol))
+                wsTarget.Cells(targetRow, targetCol).value = wsSource.Cells(i, srcCol).value
+            Next targetCol
+
+            targetRow = targetRow + 1
+
+        End If
+
+        If i Mod 500 = 0 Then
+            ProgressBar 5 + ((i / lastRow) * 10), 100, "Copying Google data..."
+        End If
+
     Next i
-    dst.Columns.AutoFit: If r &gt; 2 Then HighlightDuplicateColumn dst, pTarget, 2
+
+    wsTarget.Columns.AutoFit
+
+    If targetRow > 2 Then
+        Call HighlightDuplicateColumn(wsTarget, placeIdTargetCol, 2)
+    End If
+
 End Sub
 
 Sub HighlightDuplicateColumn(ws As Worksheet, colNum As Long, startRow As Long)
-    Dim lr As Long, rng As Range: lr = ws.Cells(ws.Rows.Count, colNum).End(xlUp).Row: If lr &lt; startRow Then Exit Sub
-    Set rng = ws.Range(ws.Cells(startRow, colNum), ws.Cells(lr, colNum)): rng.FormatConditions.Delete
-    With rng.FormatConditions.AddUniqueValues: .DupeUnique = xlDuplicate: .Font.Color = -16383844: .Interior.Color = 13551615: End With
+
+    Dim lastRow As Long
+    Dim rng As Range
+
+    lastRow = ws.Cells(ws.Rows.Count, colNum).End(xlUp).Row
+
+    If lastRow >= startRow Then
+
+        Set rng = ws.Range(ws.Cells(startRow, colNum), ws.Cells(lastRow, colNum))
+        rng.FormatConditions.Delete
+
+        With rng.FormatConditions.AddUniqueValues
+            .DupeUnique = xlDuplicate
+            .Font.Color = -16383844
+            .Interior.Color = 13551615
+        End With
+
+        rng.FormatConditions(rng.FormatConditions.Count).SetFirstPriority
+
+    End If
+
 End Sub
 
 Sub SortAscendingColumnBExceptFirstRow()
-    Dim ws As Worksheet, lr As Long, lc As Long: Set ws = Sheets("Sheet1")
-    lr = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row: lc = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    If lr &gt;= 2 Then ws.Range(ws.Cells(1, 1), ws.Cells(lr, lc)).Sort Key1:=ws.Range("B1"), Order1:=xlAscending, Header:=xlYes
+
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim lastCol As Long
+    Dim sortRange As Range
+
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
+    If lastRow >= 2 Then
+
+        Set sortRange = ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, lastCol))
+
+        sortRange.Sort _
+            Key1:=ws.Range("B1"), _
+            Order1:=xlAscending, _
+            Header:=xlYes
+
+    End If
+
 End Sub
 
 Sub BuildComparisonSheet(sheetName As String, firstSource As String, secondSource As String, missingFirstHeader As String, missingSecondHeader As String, duplicateFirstHeader As String, duplicateSecondHeader As String)
-    Dim src As Worksheet, dst As Worksheet, sc As Long, lr As Long
-    Set src = Sheets("Sheet1"): sc = GetHeaderColumn(src, SOURCE_HEADER): lr = LastRowByColumn(src, sc)
-    CreateOrClearSheet sheetName: Set dst = Sheets(sheetName)
-    dst.Range("A1:E1").Value = Array(firstSource, secondSource, "Difference", missingFirstHeader, missingSecondHeader)
-    CopySourceValuesToColumn src, dst, firstSource, 1, sc, lr: CopySourceValuesToColumn src, dst, secondSource, 2, sc, lr
-    FillMissingColumns dst, 1, 2, 4, 5
-    If duplicateFirstHeader &lt;&gt; "" Then dst.Cells(1, 6) = duplicateFirstHeader: FillDuplicateValuesFromColumn dst, 1, 6: HighlightDuplicateColumn dst, 6, 2
-    If duplicateSecondHeader &lt;&gt; "" Then dst.Cells(1, 7) = duplicateSecondHeader: FillDuplicateValuesFromColumn dst, 2, 7: HighlightDuplicateColumn dst, 7, 2
-    HighlightComparisonDuplicates dst: dst.Columns.AutoFit
+
+    Dim wsSource As Worksheet
+    Dim wsTarget As Worksheet
+    Dim lastRow As Long
+    Dim sourceCol As Long
+
+    Set wsSource = ThisWorkbook.Sheets("Sheet1")
+
+    sourceCol = GetHeaderColumn(wsSource, SOURCE_HEADER)
+    lastRow = LastRowByColumn(wsSource, sourceCol)
+
+    Call CreateOrClearSheet(sheetName)
+    Set wsTarget = ThisWorkbook.Sheets(sheetName)
+
+    wsTarget.Cells(1, "A").value = firstSource
+    wsTarget.Cells(1, "B").value = secondSource
+    wsTarget.Cells(1, "C").value = "Difference"
+    wsTarget.Cells(1, "D").value = missingFirstHeader
+    wsTarget.Cells(1, "E").value = missingSecondHeader
+
+    Call CopySourceValuesToColumn(wsSource, wsTarget, firstSource, 1, sourceCol, lastRow)
+    Call CopySourceValuesToColumn(wsSource, wsTarget, secondSource, 2, sourceCol, lastRow)
+
+    Call FillMissingColumns(wsTarget, 1, 2, 4, 5)
+
+    If duplicateFirstHeader <> "" Then
+        wsTarget.Cells(1, "F").value = duplicateFirstHeader
+        Call FillDuplicateValuesFromColumn(wsTarget, 1, 6)
+        Call HighlightDuplicateColumn(wsTarget, 6, 2)
+    End If
+
+    If duplicateSecondHeader <> "" Then
+        wsTarget.Cells(1, "G").value = duplicateSecondHeader
+        Call FillDuplicateValuesFromColumn(wsTarget, 2, 7)
+        Call HighlightDuplicateColumn(wsTarget, 7, 2)
+    End If
+
+    Call HighlightComparisonDuplicates(wsTarget)
+
+    wsTarget.Columns.AutoFit
+
 End Sub
 
-Sub CopySourceValuesToColumn(src As Worksheet, dst As Worksheet, sourceName As String, targetColumn As Long, sourceCol As Long, lastRow As Long)
-    Dim i As Long, r As Long: r = 2
+Sub CopySourceValuesToColumn(wsSource As Worksheet, wsTarget As Worksheet, sourceName As String, targetColumn As Long, sourceCol As Long, lastRow As Long)
+
+    Dim i As Long
+    Dim destRow As Long
+
+    destRow = 2
+
     For i = 2 To lastRow
-        If NormalizeText(src.Cells(i, sourceCol).Value) = NormalizeText(sourceName) Then dst.Cells(r, targetColumn).Value = src.Cells(i, "B").Value: r = r + 1
+
+        If NormalizeText(wsSource.Cells(i, sourceCol).value) = NormalizeText(sourceName) Then
+            wsTarget.Cells(destRow, targetColumn).value = wsSource.Cells(i, "B").value
+            destRow = destRow + 1
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
+
 End Sub
 
 Sub FillMissingColumns(ws As Worksheet, firstCol As Long, secondCol As Long, missingFirstCol As Long, missingSecondCol As Long)
-    Dim a As Object, b As Object, out As Object, i As Long, r As Long, v As String
-    Set a = CreateObject("Scripting.Dictionary"): Set b = CreateObject("Scripting.Dictionary")
-    For i = 2 To ws.Cells(ws.Rows.Count, firstCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, firstCol).Value): If v &lt;&gt; "" Then a(v) = ws.Cells(i, firstCol).Value
+
+    Dim dictFirst As Object
+    Dim dictSecond As Object
+    Dim outputDict As Object
+
+    Dim lastFirst As Long
+    Dim lastSecond As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim val As String
+    Dim displayVal As Variant
+
+    Set dictFirst = CreateObject("Scripting.Dictionary")
+    Set dictSecond = CreateObject("Scripting.Dictionary")
+
+    lastFirst = ws.Cells(ws.Rows.Count, firstCol).End(xlUp).Row
+    lastSecond = ws.Cells(ws.Rows.Count, secondCol).End(xlUp).Row
+
+    For i = 2 To lastFirst
+        val = NormalizeText(ws.Cells(i, firstCol).value)
+        If val <> "" Then
+            If Not dictFirst.Exists(val) Then dictFirst.Add val, ws.Cells(i, firstCol).value
+        End If
     Next i
-    For i = 2 To ws.Cells(ws.Rows.Count, secondCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, secondCol).Value): If v &lt;&gt; "" Then b(v) = ws.Cells(i, secondCol).Value
+
+    For i = 2 To lastSecond
+        val = NormalizeText(ws.Cells(i, secondCol).value)
+        If val <> "" Then
+            If Not dictSecond.Exists(val) Then dictSecond.Add val, ws.Cells(i, secondCol).value
+        End If
     Next i
-    Set out = CreateObject("Scripting.Dictionary"): r = 2
-    For i = 2 To ws.Cells(ws.Rows.Count, secondCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, secondCol).Value): If v &lt;&gt; "" And Not a.Exists(v) And Not out.Exists(v) Then ws.Cells(r, missingFirstCol) = ws.Cells(i, secondCol).Value: out(v) = True: r = r + 1
+
+    Set outputDict = CreateObject("Scripting.Dictionary")
+    destRow = 2
+
+    For i = 2 To lastSecond
+
+        val = NormalizeText(ws.Cells(i, secondCol).value)
+        displayVal = ws.Cells(i, secondCol).value
+
+        If val <> "" Then
+            If Not dictFirst.Exists(val) Then
+                If Not outputDict.Exists(val) Then
+                    ws.Cells(destRow, missingFirstCol).value = displayVal
+                    outputDict.Add val, True
+                    destRow = destRow + 1
+                End If
+            End If
+        End If
+
     Next i
-    Set out = CreateObject("Scripting.Dictionary"): r = 2
-    For i = 2 To ws.Cells(ws.Rows.Count, firstCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, firstCol).Value): If v &lt;&gt; "" And Not b.Exists(v) And Not out.Exists(v) Then ws.Cells(r, missingSecondCol) = ws.Cells(i, firstCol).Value: out(v) = True: r = r + 1
+
+    Set outputDict = CreateObject("Scripting.Dictionary")
+    destRow = 2
+
+    For i = 2 To lastFirst
+
+        val = NormalizeText(ws.Cells(i, firstCol).value)
+        displayVal = ws.Cells(i, firstCol).value
+
+        If val <> "" Then
+            If Not dictSecond.Exists(val) Then
+                If Not outputDict.Exists(val) Then
+                    ws.Cells(destRow, missingSecondCol).value = displayVal
+                    outputDict.Add val, True
+                    destRow = destRow + 1
+                End If
+            End If
+        End If
+
     Next i
+
 End Sub
 
 Sub FillDuplicateValuesFromColumn(ws As Worksheet, sourceCol As Long, targetCol As Long)
-    Dim d As Object, o As Object, i As Long, r As Long, v As String: Set d = CreateObject("Scripting.Dictionary"): Set o = CreateObject("Scripting.Dictionary")
-    For i = 2 To ws.Cells(ws.Rows.Count, sourceCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, sourceCol).Value): If v &lt;&gt; "" Then d(v) = d(v) + 1
+
+    Dim dictCount As Object
+    Dim dictOutput As Object
+    Dim lastRow As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim val As String
+    Dim displayVal As Variant
+
+    Set dictCount = CreateObject("Scripting.Dictionary")
+    Set dictOutput = CreateObject("Scripting.Dictionary")
+
+    lastRow = ws.Cells(ws.Rows.Count, sourceCol).End(xlUp).Row
+
+    For i = 2 To lastRow
+        val = NormalizeText(ws.Cells(i, sourceCol).value)
+
+        If val <> "" Then
+            If Not dictCount.Exists(val) Then
+                dictCount.Add val, 1
+            Else
+                dictCount(val) = dictCount(val) + 1
+            End If
+        End If
     Next i
-    r = 2
-    For i = 2 To ws.Cells(ws.Rows.Count, sourceCol).End(xlUp).Row: v = NormalizeText(ws.Cells(i, sourceCol).Value): If v &lt;&gt; "" And d(v) &gt; 1 And Not o.Exists(v) Then ws.Cells(r, targetCol) = ws.Cells(i, sourceCol).Value: o(v) = True: r = r + 1
+
+    destRow = 2
+
+    For i = 2 To lastRow
+        val = NormalizeText(ws.Cells(i, sourceCol).value)
+        displayVal = ws.Cells(i, sourceCol).value
+
+        If val <> "" Then
+            If dictCount.Exists(val) Then
+                If dictCount(val) > 1 Then
+                    If Not dictOutput.Exists(val) Then
+                        ws.Cells(destRow, targetCol).value = displayVal
+                        dictOutput.Add val, True
+                        destRow = destRow + 1
+                    End If
+                End If
+            End If
+        End If
     Next i
+
 End Sub
 
 Sub HighlightComparisonDuplicates(ws As Worksheet)
-    Dim lr As Long, rng As Range: lr = Application.Max(ws.Cells(ws.Rows.Count, "A").End(xlUp).Row, ws.Cells(ws.Rows.Count, "B").End(xlUp).Row): If lr &lt; 2 Then Exit Sub
-    Set rng = ws.Range("A2:B" &amp; lr): rng.FormatConditions.Delete
-    With rng.FormatConditions.AddUniqueValues: .DupeUnique = xlDuplicate: .Font.Color = -16383844: .Interior.Color = 13551615: End With
+
+    Dim lastRowA As Long
+    Dim lastRowB As Long
+    Dim lastRow As Long
+    Dim rng As Range
+
+    lastRowA = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    lastRowB = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    lastRow = Application.WorksheetFunction.Max(lastRowA, lastRowB)
+
+    If lastRow < 2 Then Exit Sub
+
+    Set rng = ws.Range("A2:B" & lastRow)
+    rng.FormatConditions.Delete
+
+    With rng.FormatConditions.AddUniqueValues
+        .DupeUnique = xlDuplicate
+        .Font.Color = -16383844
+        .Interior.Color = 13551615
+    End With
+
+    rng.FormatConditions(rng.FormatConditions.Count).SetFirstPriority
+
 End Sub
 
 Sub FilterAndCopySourceHighlightDuplicates(sourceName As String, destinationSheetName As String)
-    Dim src As Worksheet, dst As Worksheet, sc As Long, i As Long, r As Long: Set src = Sheets("Sheet1"): sc = GetHeaderColumn(src, SOURCE_HEADER)
-    CreateOrClearSheet destinationSheetName: Set dst = Sheets(destinationSheetName): dst.Cells(1, 1) = sourceName &amp; " Values": r = 2
-    For i = 2 To LastRowByColumn(src, sc): If NormalizeText(src.Cells(i, sc).Value) = NormalizeText(sourceName) And Trim(CStr(src.Cells(i, "B").Value)) &lt;&gt; "" Then dst.Cells(r, 1) = src.Cells(i, "B").Value: r = r + 1
+
+    Dim wsSource As Worksheet
+    Dim wsDest As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim sourceCol As Long
+
+    Set wsSource = ThisWorkbook.Sheets("Sheet1")
+
+    sourceCol = GetHeaderColumn(wsSource, SOURCE_HEADER)
+    lastRow = LastRowByColumn(wsSource, sourceCol)
+
+    Call CreateOrClearSheet(destinationSheetName)
+    Set wsDest = ThisWorkbook.Sheets(destinationSheetName)
+
+    wsDest.Cells(1, "A").value = sourceName & " Values"
+
+    destRow = 2
+
+    For i = 2 To lastRow
+
+        If NormalizeText(wsSource.Cells(i, sourceCol).value) = NormalizeText(sourceName) Then
+
+            If Trim(CStr(wsSource.Cells(i, "B").value)) <> "" Then
+                wsDest.Cells(destRow, "A").value = wsSource.Cells(i, "B").value
+                destRow = destRow + 1
+            End If
+
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
-    If r &gt; 2 Then HighlightDuplicateColumn dst, 1, 2
+
+    If destRow > 2 Then
+        Call HighlightDuplicateColumn(wsDest, 1, 2)
+    End If
+
+    wsDest.Columns.AutoFit
+
 End Sub
 
 Sub HarvesterCount()
-    Dim src As Worksheet, dst As Worksheet, d As Object, i As Long, r As Long, v As String, k
-    Set src = Sheets("Sheet1"): CreateOrClearSheet "Harvester Count": Set dst = Sheets("Harvester Count"): Set d = CreateObject("Scripting.Dictionary")
-    For i = 2 To src.Cells(src.Rows.Count, "B").End(xlUp).Row: v = Trim(CStr(src.Cells(i, "B").Value)): If v &lt;&gt; "" Then d(v) = d(v) + 1
+
+    Dim ws As Worksheet
+    Dim newWs As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim dict As Object
+    Dim val As String
+    Dim key As Variant
+
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+
+    Call CreateOrClearSheet("Harvester Count")
+    Set newWs = ThisWorkbook.Sheets("Harvester Count")
+
+    Set dict = CreateObject("Scripting.Dictionary")
+
+    For i = 2 To lastRow
+
+        val = Trim(CStr(ws.Cells(i, "B").value))
+
+        If val <> "" Then
+            If Not dict.Exists(val) Then
+                dict.Add val, 1
+            Else
+                dict(val) = dict(val) + 1
+            End If
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
-    dst.Range("A1:B1") = Array("Harvester", "Harvester Count"): r = 2
-    For Each k In d.Keys: dst.Cells(r, 1) = k: dst.Cells(r, 2) = d(k): r = r + 1: Next k
+
+    newWs.Cells(1, "A").value = "Harvester"
+    newWs.Cells(1, "B").value = "Harvester Count"
+
+    i = 2
+
+    For Each key In dict.Keys
+        newWs.Cells(i, "A").value = key
+        newWs.Cells(i, "B").value = dict(key)
+        i = i + 1
+    Next key
+
+    newWs.Columns.AutoFit
+
 End Sub
 
 Sub Docspot_Combined_Compared()
-    Dim src As Worksheet, dst As Worksheet, all As Object, ds As Object, cnt As Object, i As Long, r As Long, v As String, k, sc As Long
-    Set src = Sheets("Sheet1"): sc = GetHeaderColumn(src, SOURCE_HEADER): DeleteSheetIfExists "Missing DS": DeleteSheetIfExists "DUP DP": CreateOrClearSheet "docspot": Set dst = Sheets("docspot")
-    Set all = CreateObject("Scripting.Dictionary"): Set ds = CreateObject("Scripting.Dictionary"): Set cnt = CreateObject("Scripting.Dictionary")
-    For i = 2 To Application.Max(src.Cells(src.Rows.Count, "B").End(xlUp).Row, LastRowByColumn(src, sc))
-        v = Trim(CStr(src.Cells(i, "B").Value)): If v &lt;&gt; "" Then all(v) = True
-        If NormalizeText(src.Cells(i, sc).Value) = "docspot" And v &lt;&gt; "" Then ds(v) = True: cnt(v) = cnt(v) + 1
+
+    Dim ws As Worksheet
+    Dim newWs As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim dupDestRow As Long
+    Dim dictAll As Object
+    Dim dictDocspot As Object
+    Dim dictDocspotCount As Object
+    Dim dictDupOutput As Object
+    Dim val As String
+    Dim key As Variant
+    Dim sourceCol As Long
+    Dim lastRowA As Long
+
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+    sourceCol = GetHeaderColumn(ws, SOURCE_HEADER)
+
+    lastRow = Application.WorksheetFunction.Max( _
+        ws.Cells(ws.Rows.Count, "B").End(xlUp).Row, _
+        ws.Cells(ws.Rows.Count, sourceCol).End(xlUp).Row _
+    )
+
+    Call DeleteSheetIfExists("Missing DS")
+    Call DeleteSheetIfExists("DUP DP")
+
+    Call CreateOrClearSheet("docspot")
+    Set newWs = ThisWorkbook.Sheets("docspot")
+
+    Set dictAll = CreateObject("Scripting.Dictionary")
+    Set dictDocspot = CreateObject("Scripting.Dictionary")
+    Set dictDocspotCount = CreateObject("Scripting.Dictionary")
+    Set dictDupOutput = CreateObject("Scripting.Dictionary")
+
+    For i = 2 To lastRow
+
+        val = Trim(CStr(ws.Cells(i, "B").value))
+
+        If val <> "" Then
+            If Not dictAll.Exists(val) Then dictAll.Add val, 1
+        End If
+
+        If NormalizeText(ws.Cells(i, sourceCol).value) = "docspot" Then
+
+            If val <> "" Then
+
+                If Not dictDocspot.Exists(val) Then dictDocspot.Add val, 1
+
+                If Not dictDocspotCount.Exists(val) Then
+                    dictDocspotCount.Add val, 1
+                Else
+                    dictDocspotCount(val) = dictDocspotCount(val) + 1
+                End If
+
+            End If
+
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
-    dst.Range("A1:E1") = Array("Unique DS Values", "Docspot Values from Sheet1 Column B", "Comparison", "Missing Docspot", "DUP DP")
-    r = 2: For Each k In all.Keys: dst.Cells(r, 1) = k: If ds.Exists(k) Then dst.Cells(r, 3) = "Match" Else dst.Cells(r, 3) = "No Match": dst.Cells(dst.Cells(dst.Rows.Count, 4).End(xlUp).Row + 1, 4) = k: r = r + 1: Next k
-    r = 2: For Each k In ds.Keys: dst.Cells(r, 2) = k: r = r + 1: Next k
-    r = 2: For Each k In cnt.Keys: If cnt(k) &gt; 1 Then dst.Cells(r, 5) = k: r = r + 1
-    Next k
+
+    newWs.Cells(1, "A").value = "Unique DS Values"
+    newWs.Cells(1, "B").value = "Docspot Values from Sheet1 Column B"
+    newWs.Cells(1, "C").value = "Comparison"
+    newWs.Cells(1, "D").value = "Missing Docspot"
+    newWs.Cells(1, "E").value = "DUP DP"
+
+    i = 2
+
+    For Each key In dictAll.Keys
+        newWs.Cells(i, "A").value = key
+        i = i + 1
+    Next key
+
+    destRow = 2
+
+    For Each key In dictDocspot.Keys
+        newWs.Cells(destRow, "B").value = key
+        destRow = destRow + 1
+    Next key
+
+    lastRowA = newWs.Cells(newWs.Rows.Count, "A").End(xlUp).Row
+    destRow = 2
+
+    For i = 2 To lastRowA
+
+        val = Trim(CStr(newWs.Cells(i, "A").value))
+
+        If dictDocspot.Exists(val) Then
+            newWs.Cells(i, "C").value = "Match"
+        Else
+            newWs.Cells(i, "C").value = "No Match"
+            newWs.Cells(destRow, "D").value = val
+            destRow = destRow + 1
+        End If
+
+    Next i
+
+    dupDestRow = 2
+
+    For Each key In dictDocspotCount.Keys
+
+        If dictDocspotCount(key) > 1 Then
+            If Not dictDupOutput.Exists(key) Then
+                newWs.Cells(dupDestRow, "E").value = key
+                dictDupOutput.Add key, True
+                dupDestRow = dupDestRow + 1
+            End If
+        End If
+
+    Next key
+
+    If dupDestRow > 2 Then
+        Call HighlightDuplicateColumn(newWs, 5, 2)
+    End If
+
+    newWs.Columns.AutoFit
+
 End Sub
 
-Sub CopyAndFormatURLs(): CopySourceUrlData "wellness", "dup well", "Wellness URL": End Sub
-Sub CopyRateMDsLinks(): CopySourceUrlData "ratemds", "DUP RMDS", "RateMDs URL": End Sub
+Sub CopyAndFormatURLs()
 
-Sub CopySourceUrlData(sourceName As String, sheetName As String, urlHeader As String)
-    Dim src As Worksheet, dst As Worksheet, sc As Long, ec As Long, uc As Long, i As Long, r As Long, n As String, sn As String
-    Set src = Sheets("Sheet1"): sc = GetHeaderColumn(src, SOURCE_HEADER): ec = GetHeaderColumn(src, ENTITY_ID_HEADER): uc = GetHeaderColumn(src, URL_HEADER)
-    CreateOrClearSheet sheetName: Set dst = Sheets(sheetName): dst.Range("A1:C1") = Array(urlHeader, "ENTITY_ID", "number in URL"): r = 2
-    For i = 2 To LastRowByColumn(src, sc)
-        sn = NormalizeText(src.Cells(i, sc).Value)
-        If sn = sourceName Or (sourceName = "ratemds" And (sn = "rate mds" Or sn = "rate md" Or sn = "ratemd")) Then
-            dst.Cells(r, 1) = src.Cells(i, uc).Value: dst.Cells(r, 2) = src.Cells(i, ec).Value: n = ExtractFirstNumberFromText(CStr(src.Cells(i, uc).Value)): dst.Cells(r, 3) = IIf(n = "", "na", n): r = r + 1
+    Dim sourceSheet As Worksheet
+    Dim destinationSheet As Worksheet
+    Dim lastRow As Long
+    Dim sourceCol As Long
+    Dim entityCol As Long
+    Dim urlCol As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim extractedNo As String
+
+    Set sourceSheet = ThisWorkbook.Sheets("Sheet1")
+    sourceCol = GetHeaderColumn(sourceSheet, SOURCE_HEADER)
+    entityCol = GetHeaderColumn(sourceSheet, ENTITY_ID_HEADER)
+    urlCol = GetHeaderColumn(sourceSheet, URL_HEADER)
+
+    Call CreateOrClearSheet("dup well")
+    Set destinationSheet = ThisWorkbook.Sheets("dup well")
+
+    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, sourceCol).End(xlUp).Row
+
+    destinationSheet.Range("A1").value = "Wellness URL"
+    destinationSheet.Range("B1").value = "ENTITY_ID"
+    destinationSheet.Range("C1").value = "no in well url"
+
+    destRow = 2
+
+    For i = 2 To lastRow
+
+        If NormalizeText(sourceSheet.Cells(i, sourceCol).value) = "wellness" Then
+
+            destinationSheet.Cells(destRow, "A").value = sourceSheet.Cells(i, urlCol).value
+            destinationSheet.Cells(destRow, "B").value = sourceSheet.Cells(i, entityCol).value
+
+            extractedNo = ExtractFirstNumberFromText(CStr(sourceSheet.Cells(i, urlCol).value))
+
+            If extractedNo <> "" Then
+                destinationSheet.Cells(destRow, "C").value = extractedNo
+            Else
+                destinationSheet.Cells(destRow, "C").value = "na"
+            End If
+
+            destRow = destRow + 1
+
         End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
-    If r &gt; 2 Then HighlightDuplicateColumn dst, 2, 2: HighlightDuplicateColumn dst, 3, 2
+
+    If destRow > 2 Then
+        Call HighlightDuplicateColumn(destinationSheet, 2, 2)
+        Call HighlightDuplicateColumn(destinationSheet, 3, 2)
+    End If
+
+    destinationSheet.Columns.AutoFit
+
+End Sub
+
+Sub CopyRateMDsLinks()
+
+    Dim sourceSheet As Worksheet
+    Dim destinationSheet As Worksheet
+    Dim lastRow As Long
+    Dim sourceCol As Long
+    Dim entityCol As Long
+    Dim urlCol As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim srcName As String
+    Dim extractedNo As String
+
+    Set sourceSheet = ThisWorkbook.Sheets("Sheet1")
+    sourceCol = GetHeaderColumn(sourceSheet, SOURCE_HEADER)
+    entityCol = GetHeaderColumn(sourceSheet, ENTITY_ID_HEADER)
+    urlCol = GetHeaderColumn(sourceSheet, URL_HEADER)
+
+    Call CreateOrClearSheet("DUP RMDS")
+    Set destinationSheet = ThisWorkbook.Sheets("DUP RMDS")
+
+    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, sourceCol).End(xlUp).Row
+
+    destinationSheet.Range("A1").value = "RateMDs URL"
+    destinationSheet.Range("B1").value = "ENTITY_ID"
+    destinationSheet.Range("C1").value = "no in rmds url"
+
+    destRow = 2
+
+    For i = 2 To lastRow
+
+        srcName = NormalizeText(sourceSheet.Cells(i, sourceCol).value)
+
+        If srcName = "ratemds" Or srcName = "rate mds" Or srcName = "rate md" Or srcName = "ratemd" Then
+
+            destinationSheet.Cells(destRow, "A").value = sourceSheet.Cells(i, urlCol).value
+            destinationSheet.Cells(destRow, "B").value = sourceSheet.Cells(i, entityCol).value
+
+            extractedNo = ExtractFirstNumberFromText(CStr(sourceSheet.Cells(i, urlCol).value))
+
+            If extractedNo <> "" Then
+                destinationSheet.Cells(destRow, "C").value = extractedNo
+            Else
+                destinationSheet.Cells(destRow, "C").value = "na"
+            End If
+
+            destRow = destRow + 1
+
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
+    Next i
+
+    If destRow > 2 Then
+        Call HighlightDuplicateColumn(destinationSheet, 2, 2)
+        Call HighlightDuplicateColumn(destinationSheet, 3, 2)
+    End If
+
+    destinationSheet.Columns.AutoFit
+
 End Sub
 
 Sub ScopeCheck()
-    Dim src As Worksheet, dst As Worksheet, pc As Long, ec As Long, i As Long, r As Long, t As Long, d As Object, p As String, e As String, k
-    Set src = Sheets("Sheet1"): pc = GetHeaderColumn(src, PRODUCT_ID_HEADER): ec = GetHeaderColumn(src, ENTITY_ID_HEADER)
-    CreateOrClearSheet "Scope check": Set dst = Sheets("Scope check"): Set d = CreateObject("Scripting.Dictionary"): dst.Range("A1:C1") = Array("PRODUCT_ID", "ENTITY_ID", "PRODUCT_ID Types Available"): r = 2
-    For i = 2 To Application.Max(LastRowByColumn(src, pc), LastRowByColumn(src, ec)): p = Trim(CStr(src.Cells(i, pc).Value)): e = Trim(CStr(src.Cells(i, ec).Value)): If p &lt;&gt; "" Or e &lt;&gt; "" Then dst.Cells(r, 1) = p: dst.Cells(r, 2) = e: r = r + 1: If p &lt;&gt; "" Then d(p) = True
+
+    Dim ws As Worksheet
+    Dim newWs As Worksheet
+    Dim lastRow As Long
+    Dim productCol As Long
+    Dim entityCol As Long
+    Dim i As Long
+    Dim destRow As Long
+    Dim typeRow As Long
+    Dim productVal As String
+    Dim entityVal As String
+    Dim dictProductTypes As Object
+    Dim key As Variant
+
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+
+    productCol = GetHeaderColumn(ws, PRODUCT_ID_HEADER)
+    entityCol = GetHeaderColumn(ws, ENTITY_ID_HEADER)
+
+    lastRow = Application.WorksheetFunction.Max( _
+        ws.Cells(ws.Rows.Count, productCol).End(xlUp).Row, _
+        ws.Cells(ws.Rows.Count, entityCol).End(xlUp).Row _
+    )
+
+    Call CreateOrClearSheet("Scope check")
+    Set newWs = ThisWorkbook.Sheets("Scope check")
+
+    Set dictProductTypes = CreateObject("Scripting.Dictionary")
+
+    newWs.Cells(1, "A").value = "PRODUCT_ID"
+    newWs.Cells(1, "B").value = "ENTITY_ID"
+    newWs.Cells(1, "C").value = "PRODUCT_ID Types Available"
+
+    destRow = 2
+
+    For i = 2 To lastRow
+
+        productVal = Trim(CStr(ws.Cells(i, productCol).value))
+        entityVal = Trim(CStr(ws.Cells(i, entityCol).value))
+
+        If productVal <> "" Or entityVal <> "" Then
+
+            newWs.Cells(destRow, "A").value = productVal
+            newWs.Cells(destRow, "B").value = entityVal
+
+            If productVal <> "" Then
+                If Not dictProductTypes.Exists(productVal) Then
+                    dictProductTypes.Add productVal, True
+                End If
+            End If
+
+            destRow = destRow + 1
+
+        End If
+
+        If i Mod 1000 = 0 Then DoEvents
+
     Next i
-    t = 2: For Each k In d.Keys: dst.Cells(t, 3) = k: t = t + 1: Next k
+
+    typeRow = 2
+
+    For Each key In dictProductTypes.Keys
+        newWs.Cells(typeRow, "C").value = key
+        typeRow = typeRow + 1
+    Next key
+
+    newWs.Columns.AutoFit
+
 End Sub
 
 Function ExtractFirstNumberFromText(ByVal inputText As String) As String
-    Dim re As Object: Set re = CreateObject("VBScript.RegExp"): re.Pattern = "\d+": re.Global = False
-    If re.Test(inputText) Then ExtractFirstNumberFromText = re.Execute(inputText)(0).Value
+
+    Dim re As Object
+    Dim matches As Object
+
+    Set re = CreateObject("VBScript.RegExp")
+
+    With re
+        .Pattern = "\d+"
+        .Global = False
+        .IgnoreCase = True
+    End With
+
+    If re.Test(inputText) Then
+        Set matches = re.Execute(inputText)
+        ExtractFirstNumberFromText = matches(0).value
+    Else
+        ExtractFirstNumberFromText = ""
+    End If
+
 End Function
 
 Sub CalculateColumnCDifference()
-    Dim names, n, ws As Worksheet, lr As Long: names = Array("V,W", "HG,SC", "YP&amp;SP")
-    For Each n In names
-        Set ws = Sheets(CStr(n)): lr = Application.Max(ws.Cells(ws.Rows.Count, "A").End(xlUp).Row, ws.Cells(ws.Rows.Count, "B").End(xlUp).Row)
-        If lr &gt;= 2 Then ws.Range("C2:C" &amp; lr).Formula = "=IF(OR(A2="""",B2=""""),"""",IFERROR(A2-B2,""""))"
-    Next n
+
+    Dim ws As Worksheet
+    Dim lastRowA As Long
+    Dim lastRowB As Long
+    Dim lastRow As Long
+    Dim sheetNames As Variant
+    Dim i As Long
+
+    sheetNames = Array("V,W", "HG,SC", "YP&SP")
+
+    For i = LBound(sheetNames) To UBound(sheetNames)
+
+        Set ws = Nothing
+
+        On Error Resume Next
+        Set ws = ThisWorkbook.Sheets(sheetNames(i))
+        On Error GoTo 0
+
+        If Not ws Is Nothing Then
+
+            lastRowA = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+            lastRowB = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+            lastRow = Application.WorksheetFunction.Max(lastRowA, lastRowB)
+
+            If lastRow >= 2 Then
+                ws.Range("C2:C" & lastRow).ClearContents
+                ws.Range("C2").Formula = "=IF(OR(A2="""",B2=""""),"""",IFERROR(A2-B2,""""))"
+
+                If lastRow > 2 Then
+                    ws.Range("C2").AutoFill Destination:=ws.Range("C2:C" & lastRow)
+                End If
+            End If
+
+        End If
+
+    Next i
+
 End Sub
   </script>
   <script id="webmd-npi-source" type="text/plain">
 (function () {
-  "use strict";
+"use strict";
 
-  var PANEL_ID = "webmd-npi-extractor-panel";
-  var STYLE_ID = "webmd-npi-extractor-style";
-  var oldPanel = document.getElementById(PANEL_ID);
-  var oldStyle = document.getElementById(STYLE_ID);
-  if (oldPanel) oldPanel.remove();
-  if (oldStyle) oldStyle.remove();
+var urls = [
+    "https://doctor.webmd.com/doctor/s980902721/sherif-dawood-ratings",
+    "https://doctor.webmd.com/doctor/5198528/sherif-milik-ratings",
+    "https://doctor.webmd.com/doctor/sherman-katz-5032e89a-b457-4700-8a38-2c0a70ea5ebd-overview",
+    "https://doctor.webmd.com/doctor/sherrone-simon-7663be01-6f44-442c-a68d-067e6b95f0b1-overview",
+    "https://doctor.webmd.com/doctor/shuo-qian-29752784-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/simon-parzen-johnson-423ed687-a44c-4e27-b2b3-73896fd5763e-overview",
+    "https://doctor.webmd.com/doctor/simone-crivellaro-7a427291-c9e5-4461-9732-604dba95d0c2-overview",
+    "https://doctor.webmd.com/doctor/solmaz-leilabadi-286631c6-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/solomon-njuba-894a7687-9841-4221-8b30-b34e6c96c905-overview",
+    "https://doctor.webmd.com/doctor/spencer-martens-2edbaf9a-3d8e-4009-ab5b-ba206b478f95-overview",
+    "https://doctor.webmd.com/doctor/sreedevi-chittineni-95ac52a4-b9a8-4d90-8308-eecc77b2e307-overview",
+    "https://doctor.webmd.com/doctor/stephanie-eugene-282a9594-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/v16962807/stephanie-gondra-sanabria-ratings",
+    "https://doctor.webmd.com/doctor/stephanie-rzepka-abed8f9d-606d-479b-bc9b-df4e50e2637c-overview",
+    "https://doctor.webmd.com/doctor/stephanie-solari-e5fd61cd-922e-4680-a921-4a46d298768b-overview",
+    "https://doctor.webmd.com/doctor/6967215/steven-kreis-ratings",
+    "https://doctor.webmd.com/doctor/9835628/suyeun-ban-ratings",
+    "https://doctor.webmd.com/doctor/sudheer-paruchuri-12127a36-2985-4ea4-a893-fd3a2584d40a-overview",
+    "https://doctor.webmd.com/doctor/72113/sukhveer-wahi-ratings",
+    "https://doctor.webmd.com/doctor/suman-setia-19a0e84a-c0ec-446a-811f-bceaf58b31da-overview",
+    "https://doctor.webmd.com/doctor/sundar-sivaprakasam-d63a5007-1ae2-4e72-94ee-4f06de036bb7-overview",
+    "https://doctor.webmd.com/doctor/sung-rak-yun-29e55d9c-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/sunita-mohapatra-edb1f9fa-181e-44e1-b8a7-f63b377c146c-overview",
+    "https://doctor.webmd.com/doctor/5724437/sunita-singh-ratings",
+    "https://doctor.webmd.com/doctor/surbhi-trivedi-7de6db41-7b0f-402a-8bfe-0743441ebee9-overview",
+    "http://doctor.webmd.com/doctor/7294222/syed-ahmed-md-ratings",
+    "https://doctor.webmd.com/doctor/syed-moeed-c9c2e877-9075-4998-84b2-5399409fbc5c-overview",
+    "https://doctor.webmd.com/doctor/sylvia-moscoso-2df27f48-c979-46a6-8ca8-7d8cfc276639-appointments",
+    "https://doctor.webmd.com/doctor/sze-wong-d8106f83-3f25-44e1-b5e1-e9db94c8b58c-overview",
+    "https://doctor.webmd.com/doctor/tahseen-siddiqui-2a5e0580-dec5-11e7-9f4c-005056a225bf-insurance",
+    "https://doctor.webmd.com/doctor/tamara-smith-290a6566-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/tameem-souman-8879d6ab-5a35-4e3f-9c1e-8ae8f00882bc-overview",
+    "https://doctor.webmd.com/doctor/tara-de-jesus-93b0ef7f-7213-435d-9671-7b55beff779f-overview",
+    "https://doctor.webmd.com/doctor/taral-doshi-290db0ae-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/tariq-butt-54c41a04-1778-458c-83c6-8f27b0c4f4c7-overview",
+    "https://doctor.webmd.com/doctor/tatiana-dixon-afea0d4a-e431-459d-95ac-28d1299eb7d9-overview",
+    "https://doctor.webmd.com/doctor/taylor-giordano-c49c8f74-b21f-4068-a0b2-98a22605c15c-overview",
+    "https://doctor.webmd.com/doctor/5988514/tedra-gray-conditions-procedures",
+    "https://doctor.webmd.com/doctor/teia-atwood-7c428be4-2809-4914-8b46-9234351601f6-overview",
+    "http://doctor.webmd.com/doctor/5162996/telly-psaradellis-md-ratings?lid=5050898",
+    "https://doctor.webmd.com/doctor/temitayo-kafisanwo-481f5129-a8a7-4673-be5c-0a62b700e1ab-overview",
+    "https://doctor.webmd.com/doctor/tenkasi-subramanian-c28c1c0c-66b6-4f2b-9b22-6c7afb284b1d-overview",
+    "https://doctor.webmd.com/doctor/teresa-cvengros-4fffd67a-1938-4ca7-8f6c-ebea5d464f46-overview",
+    "https://doctor.webmd.com/doctor/gai5707646/tessa-qualkinbush-ratings",
+    "https://doctor.webmd.com/doctor/thankappa-balaji-bbda3bf8-745e-4850-994e-7c2ff29d7cae-overview",
+    "https://doctor.webmd.com/doctor/theresa-lie-nemeth-163e63e6-3091-4b44-b413-5afcbf4e96b7-appointments",
+    "https://doctor.webmd.com/doctor/thom-lobe-75762921-152c-42dc-bc5e-7c667c8c6539-overview",
+    "https://doctor.webmd.com/doctor/thomas-dekoj-c7ae5854-bb91-4957-bd5f-df1512141ba3-overview?lid=5553593",
+    "https://doctor.webmd.com/doctor/4708658/thomas-patrianakos-ratings",
+    "https://doctor.webmd.com/doctor/thomas-sims-jr-60d879c2-a157-4b37-88af-ef8887711a02-overview",
+    "https://doctor.webmd.com/doctor/thomas-stolz-bcd9aacf-75bd-4d25-bf67-9e53f01cea3c-overview",
+    "https://doctor.webmd.com/doctor/thomas-sullivan-2972f644-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/thomas-widell-2874f1f2-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/thomas-yates-d4c6d05f-478b-4d5c-8d39-657c9a8c52eb-overview",
+    "https://doctor.webmd.com/doctor/tiffany-chang-2a5724a6-d9f3-4be6-a2f6-096f68dac2b3-overview",
+    "https://doctor.webmd.com/doctor/tiffany-richardson-614a6a4e-495d-4a7c-a068-a9932cd820e4-overview",
+    "https://doctor.webmd.com/doctor/tilak-joshi-d7013cd6-9e6d-4c6b-a0c3-e8549f520e32-insurance",
+    "https://doctor.webmd.com/doctor/tobin-efferen-38bf275a-9a79-4027-9cda-f09dc7d24fb2-overview",
+    "https://doctor.webmd.com/doctor/tomasz-budz-6c84396b-e298-4954-828f-185779d6f153-overview",
+    "https://doctor.webmd.com/doctor/travis-amengual-f80247de-14f9-4ab6-ba2c-6c92758020a9-overview",
+    "https://doctor.webmd.com/doctor/troy-lewis-0d4935bf-27f2-4ada-98ca-7e0cbbe25754-overview",
+    "https://doctor.webmd.com/doctor/truly-gannon-62ef25cf-0115-4dad-bf33-2b13cbece1b4-overview",
+    "https://doctor.webmd.com/doctor/tyler-hinkel-ef93e389-f01f-4394-be5f-f4e75e229e4b-appointments",
+    "https://doctor.webmd.com/doctor/uma-maduekwe-280d679e-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/umayal-sawardekar-28abc132-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/uzma-syed-b4f1911d-c89e-4def-9058-4c92ac175bee-overview",
+    "https://doctor.webmd.com/doctor/6826078/vedvati-patel-ratings",
+    "https://doctor.webmd.com/doctor/venita-maldonado-69bf7319-a8ec-4f2a-ac2c-e54adf8c1c04-overview",
+    "https://doctor.webmd.com/doctor/vicko-gluncic-2a8ae87a-dec5-11e7-9f4c-005056a225bf-overview",
+    "https://doctor.webmd.com/doctor/victor-zajac-bd419c07-58c8-4233-a467-fdba5eb96a31-overview",
+    "https://doctor.webmd.com/doctor/victoria-geraldo-a911858d-3954-49cf-8ec0-10c632937fe3-overview",
+    "http://doctor.webmd.com/doctor/5758176/vivek-gupta-md-ratings",
+    "https://doctor.webmd.com/doctor/6963105/wadah-atassi-ratings",
+    "https://doctor.webmd.com/doctor/330446/waldo-arteaga-conditions-procedures",
+    "https://doctor.webmd.com/doctor/wali-badar-6e739c1d-4380-4b55-bf75-3e2eac432e06-overview",
+    "https://doctor.webmd.com/doctor/55779/wayne-detmer-jr-ratings",
+    "https://doctor.webmd.com/doctor/william-kobak-7819e258-5f35-4abc-b923-269787a5386c-overview",
+    "https://doctor.webmd.com/doctor/xiurong-huang-62244c6b-707a-4acd-83c4-105fa8c6969b-overview",
+    "https://doctor.webmd.com/doctor/yang-xue-1099fa7f-7f9a-4153-8238-9b3a67a857e6-overview",
+    "https://doctor.webmd.com/doctor/yara-costa-c90b87d1-e5a7-4924-94a1-e25724cf08b1-overview",
+    "https://doctor.webmd.com/doctor/yassir-sirajeldin-fd8938a4-0d15-4799-becb-4a4262540f8c-overview",
+    "https://doctor.webmd.com/doctor/yesenia-raithel-vargas-c812f8cb-65ab-4662-b762-e690808142eb-overview",
+    "https://doctor.webmd.com/doctor/yibo-li-30ff1442-b0eb-4106-a232-2e37a9c2446a-overview",
+    "https://doctor.webmd.com/doctor/yousef-nassar-c63e6916-016e-4546-b042-60613134ce97-overview",
+    "https://doctor.webmd.com/doctor/yousry-girgis-bdd3e660-5f7b-4f38-ae3d-e207b1b23a67-overview",
+    "https://doctor.webmd.com/doctor/zaid-haddad-722bb78f-7afa-4241-81c1-17cac995f0f9-overview",
+    "https://doctor.webmd.com/doctor/zaid-patel-ba3f3c76-de08-417d-baf8-9db6d7f84737-overview",
+    "https://doctor.webmd.com/doctor/zara-schulman-eb7a4fdc-b345-449b-8a12-2c6208399cc7-insurance",
+    "https://doctor.webmd.com/doctor/zarina-merchant-8b89704c-2298-42b0-9205-fa516d3ce13d-overview",
+    "https://doctor.webmd.com/doctor/zarinah-ali-burford-33cbb88f-8f32-428b-9bbc-cbd73a868311-overview",
+    "https://doctor.webmd.com/doctor/zeina-ibrahim-cc5686c0-5399-4e2f-ad4b-ca6224a0b034-overview",
+    "https://doctor.webmd.com/doctor/zia-khan-2f933a26-f92f-4123-989d-0aeddebd8e8f-overview",
+    "https://doctor.webmd.com/doctor/jody-adams-1c1437a4-e7b1-42bf-a066-d201a1a81e10-overview",
+    "http://doctor.webmd.com/doctor/1900216/brojendra-agarwala-md-ratings?lid=5184790",
+    "https://doctor.webmd.com/doctor/316165/phillip-ahn-ratings",
+    "https://doctor.webmd.com/doctor/oluwasoore-akande-c0ddcfaa-efae-4f93-afdf-f08dc00e6335-overview",
+    "https://doctor.webmd.com/doctor/1883942/akbar-rahmani-ratings",
+    "https://doctor.webmd.com/doctor/s80801302/ayman-al-hendy-ratings",
+    "http://doctor.webmd.com/doctor/3170356/chris-albanis-md-ratings?lid=5180974",
+    "https://doctor.webmd.com/doctor/9897614/alejandra-lastra-md-ratings?lid=5525301",
+    "https://doctor.webmd.com/doctor/francis-alenghat-dd1cb345-1589-4f0a-94f4-cb5390ae4f8f-overview",
+    "http://doctor.webmd.com/doctor/6084877/diane-altkorn-md-ratings",
+    "http://doctor.webmd.com/doctor/3906007/john-alverdy-md-ratings?lid=5276881",
+    "https://doctor.webmd.com/doctor/farah-alvi-7ded57fb-f035-4f76-896f-a13889364df8-overview",
+    "http://doctor.webmd.com/doctor/7074436/andrea-amico-md-ratings",
+    "http://doctor.webmd.com/doctor/3987957/irsk-anderson-md-ratings",
+    "https://doctor.webmd.com/doctor/andrew-howard-ded9a674-1980-453c-a7f2-ce145ebf7eab-overview",
+    "http://doctor.webmd.com/doctor/4433084/bree-andrews-md-ratings",
+    "http://doctor.webmd.com/doctor/7009255/peter-angelos-md-ratings",
+    "http://doctor.webmd.com/doctor/4806877/an-phan-md-ratings",
+    "http://doctor.webmd.com/doctor/7746227/magdalena-anitescu-md-ratings",
+    "https://doctor.webmd.com/doctor/nasreen-ansari-731f943e-1a70-4d00-a876-4b0086ac3185-overview"
+];
 
-  var CONFIG = {
-    requestTimeout: 30000,
-    retryBaseDelay: 15000,
-    maximumRetryDelay: 180000,
-    maximumRetries: 4,
-    consecutive429Limit: 3,
-    cooldownDelay: 300000,
-    maximumTotal429: 12
-  };
-
-  var style = document.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = `#${PANEL_ID}{position:fixed;top:20px;right:20px;width:470px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);overflow:auto;padding:18px;background:#fff;border:1px solid #dcdfe4;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);font:13px Arial;color:#202124;z-index:2147483647}#${PANEL_ID} *{box-sizing:border-box}#${PANEL_ID} h3{margin:0 0 6px}.wn-note{margin:0 0 12px;color:#6b7280;line-height:1.45}.wn-input{width:100%;height:150px;padding:9px;border:1px solid #cfd4dc;border-radius:7px;resize:vertical;font:12px/1.4 Consolas,monospace}.wn-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.wn-controls label{display:block;margin-bottom:4px;font-weight:bold}.wn-controls select{width:100%;padding:8px;border:1px solid #cfd4dc;border-radius:6px}.wn-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.wn-buttons button{padding:9px 5px;border:0;border-radius:7px;color:#fff;font-weight:bold;cursor:pointer}.wn-buttons button:disabled{background:#9ca3af!important}.wn-start{background:#2563eb}.wn-pause{background:#d97706}.wn-stop{background:#dc2626}.wn-download{background:#16a34a}.wn-track{height:14px;margin:13px 0 8px;overflow:hidden;background:#e5e7eb;border-radius:999px}.wn-fill{width:0;height:100%;background:linear-gradient(90deg,#2563eb,#16a34a)}.wn-status{color:#6b7280;line-height:1.4;min-height:36px}.wn-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.wn-stat{padding:7px 4px;background:#f3f4f6;border-radius:6px;text-align:center}.wn-stat b{display:block;font-size:14px}.wn-close{float:right;border:0;background:#eee;border-radius:5px;cursor:pointer}`;
-  document.head.appendChild(style);
-
-  var panel = document.createElement("div");
-  panel.id = PANEL_ID;
-  panel.innerHTML = `&lt;button class="wn-close" title="Close"&gt;X&lt;/button&gt;&lt;h3&gt;Vitals / WebMD NPI Extractor&lt;/h3&gt;&lt;p class="wn-note"&gt;Paste plain WebMD URLs or anchor-tag HTML below. Requests run one at a time with delay and HTTP 429 backoff.&lt;/p&gt;&lt;textarea class="wn-input" placeholder="Paste WebMD URLs here, one per line..."&gt;&lt;/textarea&gt;&lt;div class="wn-controls"&gt;&lt;div&gt;&lt;label&gt;Request interval&lt;/label&gt;&lt;select class="wn-delay"&gt;&lt;option value="1000"&gt;1 to 2 seconds&lt;/option&gt;&lt;option value="3000"&gt;3 to 6 seconds&lt;/option&gt;&lt;option value="8000" selected&gt;8 to 15 seconds&lt;/option&gt;&lt;option value="15000"&gt;15 to 25 seconds&lt;/option&gt;&lt;option value="30000"&gt;30 to 45 seconds&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;div&gt;&lt;label&gt;Maximum retries&lt;/label&gt;&lt;select class="wn-retries"&gt;&lt;option value="0"&gt;No retries&lt;/option&gt;&lt;option value="2"&gt;2 retries&lt;/option&gt;&lt;option value="3"&gt;3 retries&lt;/option&gt;&lt;option value="4" selected&gt;4 retries&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="wn-buttons"&gt;&lt;button class="wn-start"&gt;Start&lt;/button&gt;&lt;button class="wn-pause" disabled&gt;Pause&lt;/button&gt;&lt;button class="wn-stop" disabled&gt;Stop&lt;/button&gt;&lt;button class="wn-download" disabled&gt;CSV&lt;/button&gt;&lt;/div&gt;&lt;div class="wn-track"&gt;&lt;div class="wn-fill"&gt;&lt;/div&gt;&lt;/div&gt;&lt;b class="wn-progress"&gt;0 / 0 completed (0%)&lt;/b&gt;&lt;div class="wn-status"&gt;Ready&lt;/div&gt;&lt;div class="wn-stats"&gt;&lt;div class="wn-stat"&gt;&lt;b class="wn-found"&gt;0&lt;/b&gt;Found&lt;/div&gt;&lt;div class="wn-stat"&gt;&lt;b class="wn-missing"&gt;0&lt;/b&gt;Not found&lt;/div&gt;&lt;div class="wn-stat"&gt;&lt;b class="wn-errors"&gt;0&lt;/b&gt;Errors&lt;/div&gt;&lt;div class="wn-stat"&gt;&lt;b class="wn-rate"&gt;0&lt;/b&gt;HTTP 429&lt;/div&gt;&lt;/div&gt;`;
-  document.body.appendChild(panel);
-
-  function q(x){return panel.querySelector(x)}
-  var e={input:q('.wn-input'),delay:q('.wn-delay'),retries:q('.wn-retries'),start:q('.wn-start'),pause:q('.wn-pause'),stop:q('.wn-stop'),download:q('.wn-download'),fill:q('.wn-fill'),progress:q('.wn-progress'),status:q('.wn-status'),found:q('.wn-found'),missing:q('.wn-missing'),errors:q('.wn-errors'),rate:q('.wn-rate'),close:q('.wn-close')};
-  var s={urls:[],running:false,paused:false,stopped:false,index:0,completed:0,found:0,missing:0,errors:0,total429:0,consecutive429:0,xhr:null,timer:null,results:[]};
-
-  function decode(v){var t=document.createElement('textarea');t.innerHTML=v;return t.value}
-  function parseUrls(v){var text=decode(v).replace(/&lt;br\s*\/?\s*&gt;/gi,'\n'),out=[];try{var doc=new DOMParser().parseFromString(text,'text/html');doc.querySelectorAll('a[href]').forEach(function(a){out.push(a.href)})}catch(ignore){};(text.match(/https?:\/\/[^\s&lt;&gt;"']+/gi)||[]).forEach(function(u){out.push(u)});return out.map(function(u){return String(u).replace(/^http:\/\//i,'https://').replace(/[),;]+$/,'')}).filter(function(u,i,a){return /^https:\/\/doctor\.webmd\.com\//i.test(u)&amp;&amp;a.indexOf(u)===i})}
-  function text(el,v){el.textContent=v} function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
-  function wait(fn,ms){clearTimeout(s.timer);s.timer=setTimeout(fn,ms)}
-  function normalDelay(){var n=parseInt(e.delay.value,10),max=n&lt;=1000?2000:n&lt;=3000?6000:n&lt;=8000?15000:n&lt;=15000?25000:45000;return rnd(n,max)}
-  function retryDelay(n,h){var d=CONFIG.retryBaseDelay*Math.pow(2,n-1)+rnd(1000,5000),x=parseInt(h,10);if(!isNaN(x))d=Math.max(d,x*1000);return Math.min(d,CONFIG.maximumRetryDelay)}
-  function extract(html){var patterns=[/"name"\s*:\s*"npi"\s*,\s*"value"\s*:\s*"(\d{10})"/i,/"npi"\s*:\s*"(\d{10})"/i,/"npiNumber"\s*:\s*"(\d{10})"/i,/\bNPI(?:\s+Number)?\s*[:#-]?\s*(\d{10})\b/i,/npi[^0-9]{0,40}(\d{10})/i],m;for(var i=0;i&lt;patterns.length;i++){m=html.match(patterns[i]);if(m)return m[1]}return ''}
-  function update(){var p=s.urls.length?Math.round(s.completed/s.urls.length*100):0;e.fill.style.width=p+'%';text(e.progress,s.completed+' / '+s.urls.length+' completed ('+p+'%)');text(e.found,s.found);text(e.missing,s.missing);text(e.errors,s.errors);text(e.rate,s.total429)}
-  function controls(r){e.input.disabled=r;e.delay.disabled=r;e.retries.disabled=r;e.start.disabled=r;e.pause.disabled=!r;e.stop.disabled=!r}
-  function request(url,cb){var x=new XMLHttpRequest(),done=false;function end(err,res){if(done)return;done=true;s.xhr=null;cb(err,res)}x.open('GET',url,true);x.timeout=CONFIG.requestTimeout;x.onreadystatechange=function(){if(x.readyState===4){var h='';try{h=x.getResponseHeader('Retry-After')}catch(ignore){}end(null,{status:x.status,html:x.responseText||'',retryAfter:h})}};x.onerror=function(){end(new Error('Network or CORS request failure'))};x.ontimeout=function(){end(new Error('Request timed out'))};x.onabort=function(){end(new Error('Request aborted'))};s.xhr=x;x.send()}
-  function save(url,npi,code,status){s.results.push({url:url,npi:npi,statusCode:code,status:status});s.completed++;s.index++;update()}
-  function next(retry){if(!s.running||s.stopped||s.paused)return;if(s.index&gt;=s.urls.length){finish(false);return}var url=s.urls[s.index];text(e.status,(retry?'Retry '+retry+': ':'Requesting ')+(s.index+1)+' of '+s.urls.length);request(url,function(err,res){var max=parseInt(e.retries.value,10),d,npi;if(!s.running)return;if(err){s.errors++;save(url,'',0,err.message);wait(function(){next(0)},normalDelay());return}if(res.status&gt;=200&amp;&amp;res.status&lt;300){s.consecutive429=0;npi=extract(res.html);if(npi)s.found++;else s.missing++;save(url,npi,res.status,npi?'Found':'NPI not found');wait(function(){next(0)},normalDelay());return}if(res.status===429){s.total429++;s.consecutive429++;update();if(retry&lt;max&amp;&amp;s.total429&lt;CONFIG.maximumTotal429){d=retryDelay(retry+1,res.retryAfter);if(s.consecutive429&gt;=CONFIG.consecutive429Limit){d=Math.max(d,CONFIG.cooldownDelay);s.consecutive429=0}text(e.status,'HTTP 429. Waiting '+Math.ceil(d/1000)+' seconds.');wait(function(){next(retry+1)},d);return}s.errors++;save(url,'',429,'HTTP 429: retry limit reached');if(s.total429&gt;=CONFIG.maximumTotal429){finish(true);return}wait(function(){next(0)},CONFIG.cooldownDelay);return}if(res.status&gt;=500&amp;&amp;retry&lt;max){d=retryDelay(retry+1,res.retryAfter);wait(function(){next(retry+1)},d);return}s.errors++;save(url,'',res.status,'HTTP '+res.status);wait(function(){next(0)},normalDelay())})}
-  function csv(){var rows=['URL,NPI,Status Code,Status'];s.results.forEach(function(r){rows.push([r.url,r.npi,r.statusCode,r.status].map(function(v){return '"'+String(v||'').replace(/"/g,'""')+'"'}).join(','))});return '\uFEFF'+rows.join('\r\n')}
-  function download(){if(!s.results.length)return;var b=new Blob([csv()],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='webmd_npi_data_'+Date.now()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000)}
-  function finish(limited){s.running=false;controls(false);e.pause.disabled=true;e.stop.disabled=true;e.download.disabled=!s.results.length;text(e.start,'Run Again');text(e.status,limited?'Stopped after repeated HTTP 429 responses.':'Completed.');if(s.results.length)download()}
-  e.start.onclick=function(){s.urls=parseUrls(e.input.value);if(!s.urls.length){text(e.status,'No valid WebMD URLs found.');return}s.running=true;s.paused=false;s.stopped=false;s.index=s.completed=s.found=s.missing=s.errors=s.total429=s.consecutive429=0;s.results=[];controls(true);update();wait(function(){next(0)},500)};
-  e.pause.onclick=function(){s.paused=!s.paused;clearTimeout(s.timer);text(e.pause,s.paused?'Resume':'Pause');text(e.status,s.paused?'Paused':'Resuming');if(!s.paused)wait(function(){next(0)},300)};
-  e.stop.onclick=function(){s.stopped=true;s.running=false;clearTimeout(s.timer);if(s.xhr)try{s.xhr.abort()}catch(ignore){}controls(false);e.download.disabled=!s.results.length;text(e.status,'Stopped. Partial results can be downloaded.')};
-  e.download.onclick=download;e.close.onclick=function(){s.stopped=true;clearTimeout(s.timer);if(s.xhr)try{s.xhr.abort()}catch(ignore){}panel.remove();style.remove()};
-})();
+var NPI_CONFIG = { requestTimeout: 30000, retryBaseDelay: 15000, maximumRetryDelay: 180000, maximumRetries: 4, consecutive429Limit: 3, cooldownDelay: 300000, maximumTotal429: 12 };
+var style = document.createElement("style");
+style.type = "text/css";
+style.innerHTML = "#npi-progress-panel{position:fixed;top:20px;right:20px;width:430px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);overflow-y:auto;padding:18px;background:#fff;border:1px solid #dcdfe4;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);font-family:Arial,sans-serif;font-size:13px;color:#202124;z-index:2147483647}#npi-progress-panel *{box-sizing:border-box}#npi-progress-panel h3{margin:0 0 6px;font-size:16px}.npi-description{margin:0 0 14px;color:#6b7280;font-size:12px;line-height:1.45}.npi-control-row{display:flex;gap:8px;margin-bottom:12px}.npi-control-group{flex:1;min-width:0}.npi-control-group label{display:block;margin-bottom:5px;font-weight:bold;color:#4b5563}.npi-control-group select{width:100%;padding:8px;border:1px solid #cfd4dc;border-radius:6px;background:#fff;font:12px Arial}.npi-button-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.npi-button{width:100%;padding:10px;border:0;border-radius:7px;color:#fff;font-weight:bold;cursor:pointer}.npi-button:disabled{background:#9ca3af!important;cursor:not-allowed}#npi-start-button{background:#2563eb}#npi-pause-button{background:#d97706}#npi-stop-button{background:#dc2626}#npi-download-button{background:#16a34a}#npi-progress-track{width:100%;height:14px;overflow:hidden;background:#e5e7eb;border-radius:999px;margin-bottom:9px}#npi-progress-fill{width:0;height:100%;background:linear-gradient(90deg,#2563eb,#16a34a);border-radius:999px;transition:width .25s}#npi-progress-text{font-weight:bold;margin-bottom:5px}#npi-status-text{color:#6b7280;word-break:break-word;line-height:1.4;min-height:36px}#npi-statistics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}.npi-stat{padding:7px 5px;background:#f3f4f6;border-radius:6px;text-align:center}.npi-stat-value{display:block;font-size:14px;font-weight:bold}.npi-stat-label{display:block;margin-top:2px;color:#6b7280;font-size:10px}@media(max-width:600px){#npi-progress-panel{top:10px;right:10px;max-width:calc(100vw - 20px)}.npi-control-row{display:block}.npi-control-group{margin-bottom:8px}}";
+document.getElementsByTagName("head")[0].appendChild(style);
+var old = document.getElementById("npi-progress-panel"); if (old && old.parentNode) { old.parentNode.removeChild(old); }
+var panel = document.createElement("div"); panel.id = "npi-progress-panel";
+panel.innerHTML = '<h3>Vitals / WebMD NPI Extractor</h3><p class="npi-description">Single-request extraction with automatic delay, HTTP 429 backoff, and automatic CSV download.</p><div class="npi-control-row"><div class="npi-control-group"><label for="npi-delay-selector">Request interval</label><select id="npi-delay-selector"><option value="1000">1 to 2 seconds - Fastest</option><option value="2000">2 to 4 seconds - Fast</option><option value="3000">3 to 6 seconds</option><option value="5000">5 to 10 seconds</option><option value="8000" selected="selected">8 to 15 seconds</option><option value="15000">15 to 25 seconds</option><option value="30000">30 to 45 seconds</option><option value="60000">60 to 90 seconds</option></select></div><div class="npi-control-group"><label for="npi-retry-selector">Maximum retries</label><select id="npi-retry-selector"><option value="0">No retries</option><option value="2">2 retries</option><option value="3">3 retries</option><option value="4" selected="selected">4 retries</option></select></div></div><div class="npi-button-row"><button id="npi-start-button" class="npi-button">Start</button><button id="npi-pause-button" class="npi-button" disabled="disabled">Pause</button><button id="npi-stop-button" class="npi-button" disabled="disabled">Stop</button><button id="npi-download-button" class="npi-button" disabled="disabled">Download CSV</button></div><div id="npi-progress-track"><div id="npi-progress-fill"></div></div><div id="npi-progress-text">0 / '+urls.length+' completed (0%)</div><div id="npi-status-text">Ready</div><div id="npi-statistics"><div class="npi-stat"><span id="npi-found-count" class="npi-stat-value">0</span><span class="npi-stat-label">Found</span></div><div class="npi-stat"><span id="npi-not-found-count" class="npi-stat-value">0</span><span class="npi-stat-label">Not found</span></div><div class="npi-stat"><span id="npi-error-count" class="npi-stat-value">0</span><span class="npi-stat-label">Errors</span></div><div class="npi-stat"><span id="npi-429-count" class="npi-stat-value">0</span><span class="npi-stat-label">HTTP 429</span></div></div>';
+document.getElementsByTagName("body")[0].appendChild(panel);
+var e={delaySelector:document.getElementById("npi-delay-selector"),retrySelector:document.getElementById("npi-retry-selector"),startButton:document.getElementById("npi-start-button"),pauseButton:document.getElementById("npi-pause-button"),stopButton:document.getElementById("npi-stop-button"),downloadButton:document.getElementById("npi-download-button"),progressFill:document.getElementById("npi-progress-fill"),progressText:document.getElementById("npi-progress-text"),statusText:document.getElementById("npi-status-text"),foundCount:document.getElementById("npi-found-count"),notFoundCount:document.getElementById("npi-not-found-count"),errorCount:document.getElementById("npi-error-count"),rateLimitCount:document.getElementById("npi-429-count")};
+var s={running:false,paused:false,stopped:false,currentIndex:0,completed:0,found:0,notFound:0,errors:0,total429:0,consecutive429:0,currentXHR:null,timerId:null,results:new Array(urls.length)};
+function text(x,v){if(typeof x.textContent!=="undefined"){x.textContent=v;}else{x.innerText=v;}}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;} function status(v){text(e.statusText,v);} function duration(ms){var t=Math.ceil(ms/1000),m=Math.floor(t/60),q=t%60;return m>0?m+"m "+q+"s":q+"s";}
+function stats(){text(e.foundCount,String(s.found));text(e.notFoundCount,String(s.notFound));text(e.errorCount,String(s.errors));text(e.rateLimitCount,String(s.total429));}
+function progress(){var p=urls.length?Math.round(s.completed/urls.length*100):100;e.progressFill.style.width=p+"%";text(e.progressText,s.completed+" / "+urls.length+" completed ("+p+"%)");stats();}
+function clearTask(){if(s.timerId!==null){clearTimeout(s.timerId);s.timerId=null;}} function schedule(fn,d){clearTask();s.timerId=setTimeout(function(){s.timerId=null;fn();},d);}
+function controls(r){e.delaySelector.disabled=r;e.retrySelector.disabled=r;e.startButton.disabled=r;e.pauseButton.disabled=!r;e.stopButton.disabled=!r;}
+function normalize(url){return String(url||"").replace(/^http:\/\//i,"https://");}
+function extract(html){var p=[/"name"\s*:\s*"npi"\s*,\s*"value"\s*:\s*"(\d{10})"/i,/"npi"\s*:\s*"(\d{10})"/i,/"npiNumber"\s*:\s*"(\d{10})"/i,/\bNPI(?:\s+Number)?\s*[:#-]?\s*(\d{10})\b/i,/npi[^0-9]{0,40}(\d{10})/i],i,m;for(i=0;i<p.length;i++){m=html.match(p[i]);if(m&&m[1]){return m[1];}}return null;}
+function retryAfter(v){var n,d;if(!v){return null;}n=parseInt(v,10);if(!isNaN(n)&&n>=0){return n*1000;}d=Date.parse(v);return isNaN(d)?null:Math.max(0,d-(new Date().getTime()));}
+function retryDelay(n,h){var sd=retryAfter(h),d=NPI_CONFIG.retryBaseDelay*Math.pow(2,n-1)+rnd(1000,5000);if(sd!==null&&sd>d){d=sd+rnd(1000,5000);}return Math.min(d,NPI_CONFIG.maximumRetryDelay);}
+function normalDelay(){var n=parseInt(e.delaySelector.value,10),x;if(n<=1000){x=2000;}else if(n<=2000){x=4000;}else if(n<=3000){x=6000;}else if(n<=5000){x=10000;}else if(n<=8000){x=15000;}else if(n<=15000){x=25000;}else if(n<=30000){x=45000;}else{x=90000;}return rnd(n,x);}
+function fetchURL(url,cb){var x=new XMLHttpRequest(),done=false;function finish(err,res){if(done){return;}done=true;s.currentXHR=null;cb(err,res);}try{x.open("GET",url,true);x.timeout=NPI_CONFIG.requestTimeout;x.onreadystatechange=function(){var h=null;if(x.readyState!==4||done){return;}try{h=x.getResponseHeader("Retry-After");}catch(ignore){h=null;}finish(null,{status:x.status,html:x.responseText||"",retryAfter:h});};x.onerror=function(){finish(new Error("Network or CORS request failure"),null);};x.ontimeout=function(){finish(new Error("Request timed out after "+NPI_CONFIG.requestTimeout+" ms"),null);};x.onabort=function(){finish(new Error("Request aborted"),null);};s.currentXHR=x;x.send(null);}catch(err){finish(err,null);}}
+function save(i,o,r,n,c,t){s.results[i]={url:o,requestedUrl:r,npi:n,statusCode:c,status:t};} function complete(){s.completed++;s.currentIndex++;progress();}
+function next(){if(!s.running||s.stopped){return;}if(s.paused){status("Paused");return;}current(0);}
+function current(retry){var i,o,r;if(!s.running||s.stopped){return;}if(s.paused){status("Paused");return;}if(s.currentIndex>=urls.length){finish(false);return;}if(s.total429>=NPI_CONFIG.maximumTotal429){finish(true);return;}i=s.currentIndex;o=urls[i];r=normalize(o);status((retry?"Retry "+retry+" for":"Requesting")+" item "+(i+1)+" of "+urls.length);fetchURL(r,function(err,res){handle(i,o,r,retry,err,res);});}
+function handle(i,o,r,retry,err,res){var max=parseInt(e.retrySelector.value,10),n,d;if(!s.running||s.stopped){return;}if(err){s.errors++;save(i,o,r,"",0,err.message);complete();if(s.currentIndex>=urls.length){finish(false);return;}d=normalDelay();status("Request failed. Waiting "+duration(d)+" before continuing.");schedule(next,d);return;}if(res.status>=200&&res.status<300){s.consecutive429=0;n=extract(res.html);if(n){s.found++;save(i,o,r,n,res.status,"Found");}else{s.notFound++;save(i,o,r,"",res.status,"NPI not found");}complete();if(s.currentIndex>=urls.length){finish(false);return;}d=normalDelay();status("Processed item "+(i+1)+". HTTP "+res.status+". Waiting "+duration(d)+".");schedule(next,d);return;}if(res.status===429){s.total429++;s.consecutive429++;stats();if(retry<max&&s.total429<NPI_CONFIG.maximumTotal429){d=retryDelay(retry+1,res.retryAfter);if(s.consecutive429>=NPI_CONFIG.consecutive429Limit){d=Math.max(d,NPI_CONFIG.cooldownDelay);s.consecutive429=0;}status("HTTP 429 received. Waiting "+duration(d)+" before retrying.");schedule(function(){current(retry+1);},d);return;}s.errors++;save(i,o,r,"",429,"HTTP 429: retry limit reached");complete();if(s.total429>=NPI_CONFIG.maximumTotal429){finish(true);return;}if(s.currentIndex>=urls.length){finish(false);return;}schedule(next,NPI_CONFIG.cooldownDelay);return;}if(res.status>=500&&res.status<=599&&retry<max){d=retryDelay(retry+1,res.retryAfter);status("HTTP "+res.status+". Waiting "+duration(d)+" before retrying.");schedule(function(){current(retry+1);},d);return;}s.errors++;save(i,o,r,"",res.status,"HTTP "+res.status);complete();if(s.currentIndex>=urls.length){finish(false);return;}d=normalDelay();status("HTTP "+res.status+". Waiting "+duration(d)+".");schedule(next,d);}
+function reset(){clearTask();s.running=false;s.paused=false;s.stopped=false;s.currentIndex=0;s.completed=0;s.found=0;s.notFound=0;s.errors=0;s.total429=0;s.consecutive429=0;s.currentXHR=null;s.results=new Array(urls.length);e.progressFill.style.width="0%";e.downloadButton.disabled=true;text(e.pauseButton,"Pause");progress();}
+function start(){if(s.running){return;}reset();if(!urls.length){status("The URL list is empty.");return;}s.running=true;controls(true);status("Starting first request...");schedule(next,1000);}
+function pause(){if(!s.running){return;}if(!s.paused){s.paused=true;clearTask();text(e.pauseButton,"Resume");status("Paused. An active request may still finish.");}else{s.paused=false;text(e.pauseButton,"Pause");status("Resuming...");schedule(next,500);}}
+function stop(){if(!s.running){return;}s.stopped=true;s.running=false;clearTask();if(s.currentXHR){try{s.currentXHR.abort();}catch(ignore){s.currentXHR=null;}s.currentXHR=null;}controls(false);e.pauseButton.disabled=true;e.stopButton.disabled=true;e.downloadButton.disabled=s.completed===0;text(e.startButton,"Start Again");status("Stopped. Partial results can be downloaded.");}
+function csvValue(v){return String(v===null||typeof v==="undefined"?"":v).replace(/"/g,'""');}
+function download(data){var rows=[["URL","Requested URL","NPI","Status Code","Status"].join(",")],i,a,c,b,l,u,name;for(i=0;i<data.length;i++){a=data[i];if(a){rows.push('"'+csvValue(a.url)+'","'+csvValue(a.requestedUrl)+'","'+csvValue(a.npi)+'","'+csvValue(a.statusCode)+'","'+csvValue(a.status)+'"');}}if(rows.length===1){status("No CSV results are available to download.");return;}c="\uFEFF"+rows.join("\r\n");b=new Blob([c],{type:"text/csv;charset=utf-8"});name="webmd_npi_data_"+(new Date().getTime())+".csv";if(window.navigator&&window.navigator.msSaveBlob){window.navigator.msSaveBlob(b,name);status("CSV downloaded: "+name);return;}u=window.URL.createObjectURL(b);l=document.createElement("a");l.href=u;l.download=name;l.style.display="none";document.body.appendChild(l);l.click();status("CSV download started: "+name);setTimeout(function(){if(l.parentNode){l.parentNode.removeChild(l);}window.URL.revokeObjectURL(u);},30000);}
+function finish(limited){s.running=false;s.paused=false;clearTask();controls(false);e.pauseButton.disabled=true;e.stopButton.disabled=true;e.downloadButton.disabled=s.completed===0;text(e.startButton,"Run Again");progress();status(limited?"Stopped after repeated HTTP 429 responses. Preparing partial CSV...":"Completed. Preparing CSV download...");if(s.completed>0){setTimeout(function(){download(s.results);},500);}else{status("Finished, but no completed results are available.");}}
+e.startButton.onclick=start;e.pauseButton.onclick=pause;e.stopButton.onclick=stop;e.downloadButton.onclick=function(){download(s.results);};
+}());
   </script>
   <script>
     const modal=document.getElementById('code-modal'),editor=document.getElementById('code-editor'),editButton=document.getElementById('edit-button'),copyButton=document.getElementById('copy-button'),closeButton=document.getElementById('close-button'),modeLabel=document.getElementById('mode-label'),toast=document.getElementById('toast');
